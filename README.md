@@ -1,2 +1,5 @@
-# Galba
-General purpose bot (FR)
+# Zephir
+Bot francophone multifonctions et modulaire
+
+### Support et développement
+[Serveur Discord](discord.gg/65WFUXsgtq)
