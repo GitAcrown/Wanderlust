@@ -21,7 +21,7 @@ intents.members = True
 
 async def main():
     bot = commands.Bot(
-       command_prefix='z!',
+       command_prefix=commands.when_mentioned_or("z!"),
         description="Bot multifonction modulaire français",
         help_command=None,
         intents=intents 
