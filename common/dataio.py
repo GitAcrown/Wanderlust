@@ -61,7 +61,7 @@ def get_cog_data(cog: commands.Cog) -> CogData:
     :param cog: Cog dont on veut récupérer les données
     :return: Objet CogData contenant toutes les données du Cog
     """
-    return CogData(cog.qualified_name)
+    return CogData(cog.qualified_name.lower())
 
 def get_cog_data_by_name(cog_name: str) -> CogData:
     """Retourne un objet CogData contenant toutes les données du Cog
@@ -69,6 +69,7 @@ def get_cog_data_by_name(cog_name: str) -> CogData:
     :param cog_name: Nom du Cog dont on veut récupérer les données
     :return: Objet CogData contenant toutes les données du Cog
     """
+    cog_name = cog_name.lower()
     return CogData(cog_name)
         
 def _get_object_db_name(obj: Union[discord.User, discord.Member, discord.Guild, discord.TextChannel, str, int]) -> str:
