@@ -401,7 +401,7 @@ class ChatGPT(commands.Cog):
         self.get_session(channel_id, system_prompt, temperature)
         await interaction.response.send_message(f"**Session customisée démarrée**\nLa session a été réinitialisée et le prompt de configuration initial a été modifié avec les instructions suivantes :\n```{system_prompt}```Et avec une **température** de {temperature}")
 
-    chat_group.command(name='show')
+    @chat_group.command(name='show')
     async def check_current_config(self, interaction: discord.Interaction):
         """Affiche le prompt de configuration actuellement utilisé sur ce channel"""
         channel_id = interaction.channel_id
