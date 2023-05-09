@@ -412,7 +412,7 @@ class ChatGPT(commands.Cog):
             await interaction.response.send_message(f"**Aucune session en cours**\nIl n'y a aucune session en cours sur ce channel.", ephemeral=True)
             return
         first_prompt = session['prompts'][0]
-        await interaction.response.send_message(f"**Prompt de configuration actuel**\nVoici le prompt de configuration actuellement utilisé sur ce channel :\n```{first_prompt}```Et avec une **température** de {session['temperature']}")
+        await interaction.response.send_message(f"**Prompt de configuration actuel**\nVoici le prompt de configuration actuellement utilisé sur ce channel :\n```{first_prompt['content']}```Et avec une **température** de {session['temperature']}")
 
     @app_commands.command(name='reset')
     @app_commands.checks.cooldown(1, 300)
