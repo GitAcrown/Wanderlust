@@ -399,6 +399,21 @@ class ChatGPT(commands.Cog):
         self.get_session(channel_id, system_prompt, temperature)
         await interaction.response.send_message(f"**Session customisée démarrée**\nLa session a été réinitialisée et le prompt de configuration initial a été modifié avec les instructions suivantes :\n```{system_prompt}```Et avec une **température** de {temperature}")
 
+    @app_commands.command(name='current')
+    async def check_current_config(self, interaction: discord.Interaction):
+        """Affiche le prompt de configuration actuellement utilisé sur ce channel
+        """
+        channel_id = interaction.channel_id
+        if not isinstance(channel_id, int):
+            await interaction.response.send_message(f"**Commande réservée aux channels textuels**\nCette commande ne peut être utilisée que dans un channel textuel.", ephemeral=True)
+            return
+        session = self.get_session(channel_id)
+        if not session:
+            await interaction.response.send_message(f"**Aucune session en cours**\nIl n'y a aucune session en cours sur ce channel.", ephemeral=True)
+            return
+        first_prompt = session['prompts'][0]
+        await interaction.response.send_message(f"**Prompt de configuration actuel**\nVoici le prompt de configuration actuellement utilisé sur ce channel :\n```{first_prompt}```Et avec une **température** de {session['temperature']}")
+
     @app_commands.command(name='reset')
     @app_commands.checks.cooldown(1, 300)
     async def reset_channel_session(self, interaction: discord.Interaction):
