@@ -352,7 +352,7 @@ class ChatGPT(commands.Cog):
             return
         self.delete_session(channel_id)
         self.get_session(channel_id, prompt, temp)
-        await interaction.response.send_message(f"**Session customisée démarrée**\nLa session a été réinitialisée et le prompt de configuration initial a été modifié avec les instructions suivantes, tirées du preset `{preset_id}` :\n```{prompt}```Et avec une **température** de {temp}")
+        await interaction.response.send_message(f"**Session customisée démarrée**\nLa session a été réinitialisée et le prompt de configuration initial a été modifié avec les instructions suivantes, tirées du preset `{preset['name']}` :\n```{prompt}```Et avec une **température** de {temp}")
     
     @use_preset.autocomplete('preset_id')
     @remove_preset.autocomplete('preset_id')
