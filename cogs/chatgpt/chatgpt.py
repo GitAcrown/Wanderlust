@@ -130,11 +130,11 @@ class ChatGPT(commands.Cog):
         try:
             response = await openai.chat_complete(
                     self.api_key,
-                    timeout=30,
+                    timeout=40,
                     payload={
                         'model':'gpt-3.5-turbo',
                         'temperature': temp,
-                        'max_tokens': 500,
+                        'max_tokens': 400,
                         'messages': messages
                     }
                 )
