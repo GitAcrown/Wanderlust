@@ -365,7 +365,9 @@ class ChatGPT(commands.Cog):
     
     # COMMANDES BRUTES ==================================================================================================
     
-    @app_commands.command(name='custom')
+    chat_group = app_commands.Group(name='chat', description="Commandes de chat avec l'IA")
+    
+    @chat_group.command(name='custom')
     async def customize_sysprompt(self, interaction: discord.Interaction, system_prompt: str, temperature: float = 1.0):
         """Réinitialise la session en cours sur ce channel et modifie le prompt de configuration initiale
     
@@ -399,7 +401,7 @@ class ChatGPT(commands.Cog):
         self.get_session(channel_id, system_prompt, temperature)
         await interaction.response.send_message(f"**Session customisée démarrée**\nLa session a été réinitialisée et le prompt de configuration initial a été modifié avec les instructions suivantes :\n```{system_prompt}```Et avec une **température** de {temperature}")
 
-    @app_commands.command(name='current')
+    chat_group.command(name='current')
     async def check_current_config(self, interaction: discord.Interaction):
         """Affiche le prompt de configuration actuellement utilisé sur ce channel
         """
@@ -414,7 +416,7 @@ class ChatGPT(commands.Cog):
         first_prompt = session['prompts'][0]
         await interaction.response.send_message(f"**Prompt de configuration actuel**\nVoici le prompt de configuration actuellement utilisé sur ce channel :\n```{first_prompt['content']}```Et avec une **température** de {session['temperature']}")
 
-    @app_commands.command(name='reset')
+    @chat_group.command(name='reset')
     @app_commands.checks.cooldown(1, 300)
     async def reset_channel_session(self, interaction: discord.Interaction):
         """Réinitialise la session en cours sur ce channel en utilisant le prompt de configuration par défaut"""
@@ -425,7 +427,7 @@ class ChatGPT(commands.Cog):
         self.delete_session(channel_id)
         await interaction.response.send_message(f"**Session réinitialisée**\nLa session a été réinitialisée avec le prompt de configuration initial par défaut.")
 
-    @app_commands.command(name='talk')
+    @chat_group.command(name='private')
     @app_commands.checks.cooldown(1, 20)
     async def send_prompt(self, interaction: discord.Interaction, content: str):
         """Parler avec GPT-3 (Modèle GPT-3.5 Turbo) en privé sur la session en cours"""
