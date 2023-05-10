@@ -13,7 +13,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="[%(asctime)s] %(levelname)s (%(name)s %(module)s) %(message)s",
 )
-logger = logging.getLogger('Zephir.Main')
+logger = logging.getLogger('Wanderlust.Main')
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -21,7 +21,7 @@ intents.members = True
 
 async def main():
     bot = commands.Bot(
-       command_prefix="z!",
+       command_prefix="w!",
         description="Bot multifonction modulaire français",
         help_command=None,
         intents=intents 

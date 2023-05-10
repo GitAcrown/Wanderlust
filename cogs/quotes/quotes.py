@@ -15,7 +15,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from common import dataio
 
-logger = logging.getLogger(f'Zephir.{__name__.capitalize()}')
+logger = logging.getLogger(f'Wanderlust.{__name__.capitalize()}')
 
 EXTRACT_COLOR_LIMIT = 5
 

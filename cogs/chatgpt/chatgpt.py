@@ -11,11 +11,11 @@ from typing import Optional, List, Literal, Dict
 from common import dataio
 from common.utils import fuzzy
 
-logger = logging.getLogger(f'Zephir.{__name__.capitalize()}')
+logger = logging.getLogger(f'Wanderlust.{__name__.capitalize()}')
 
 COG_VERSION = '2.1.0'
 
-DEFAULT_SYSTEM_PROMPT = """Tu es un assistant appelé Zephir, qui répond aux demandes d'un groupe d'utilisateurs.
+DEFAULT_SYSTEM_PROMPT = """Tu es un assistant appelé Wanderlust, qui répond aux demandes d'un groupe d'utilisateurs.
 N'hésite pas à t'exprimer de manière familière, comme tu le ferais avec tes amis, mais sans les saluer en début de réponse. 
 Tu peux utiliser des abréviations, des raccourcis, le formattage markdown etc. Tu peux aussi utiliser des mots vulgaires et t'es libre d'être créatif et inventif. 
 Essaye d'être concis et de ne pas dépasser 2000 caractères par réponse."""
