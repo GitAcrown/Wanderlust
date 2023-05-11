@@ -134,7 +134,7 @@ class ChatGPT(commands.Cog):
                     payload={
                         'model':'gpt-3.5-turbo',
                         'temperature': temp,
-                        'max_tokens': 400,
+                        'max_tokens': 500,
                         'messages': messages
                     }
                 )

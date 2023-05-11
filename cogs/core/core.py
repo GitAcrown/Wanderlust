@@ -6,7 +6,7 @@ import logging
 from contextlib import redirect_stdout
 from typing import Optional, Any
 
-logger = logging.getLogger(f'Zephir.{__name__.capitalize()}')
+logger = logging.getLogger(f'Wanderlust.{__name__.capitalize()}')
 
 class Core(commands.Cog):
     """Module central du bot, contenant des commandes de base."""
