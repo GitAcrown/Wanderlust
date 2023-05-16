@@ -315,7 +315,7 @@ class ChatGPT(commands.Cog):
         
     @preset_group.command(name='use')
     @app_commands.guild_only()
-    @app_commands.checks.cooldown(1, 120)
+    @app_commands.checks.cooldown(1, 60)
     async def use_preset(self, interaction: discord.Interaction, preset_id: str):
         """Lancer une session d'IA avec un preset de configuration sur ce serveur"""
         guild = interaction.guild
