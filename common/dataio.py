@@ -47,7 +47,7 @@ class CogData:
     def _get_sqlite_conn(self, obj: DB_TYPES) -> sqlite3.Connection:
         folder = self.data_path / "data"
         folder.mkdir(parents=True, exist_ok=True)
-        db_path = folder / f"{__get_object_db_name(obj)}.db"
+        db_path = folder / f"{_get_object_db_name(obj)}.db"
         return sqlite3.connect(db_path)
     
     def _load_database(self, obj: DB_TYPES, enable_row_factory: bool = True) -> sqlite3.Connection:
@@ -157,7 +157,7 @@ def get_cog_data(cog: Union[commands.Cog, str]) -> CogData:
 
 # Utils -----------------------
         
-def __get_object_db_name(obj: DB_TYPES) -> str:
+def _get_object_db_name(obj: DB_TYPES) -> str:
     """Retourne un nom de base de données normalisé à partir d'un objet discord
 
     :param obj: Objet Discord commun (User, Member, Guild, TextChannel) ou ID brut de l'objet
