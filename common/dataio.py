@@ -112,7 +112,7 @@ class CogData:
         """
         conn = self.get_database(obj)
         cursor = conn.cursor()
-        cursor.execute(query, args)
+        cursor.execute(query, *args)
         result = cursor.fetchone()
         cursor.close()
         return result
@@ -127,7 +127,7 @@ class CogData:
         """
         conn = self.get_database(obj)
         cursor = conn.cursor()
-        cursor.execute(query, args)
+        cursor.execute(query, *args)
         result = cursor.fetchall()
         cursor.close()
         return result
@@ -141,7 +141,7 @@ class CogData:
         """
         conn = self.get_database(obj)
         cursor = conn.cursor()
-        cursor.execute(query, args)
+        cursor.execute(query, *args)
         conn.commit()
         cursor.close()
     
