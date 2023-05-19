@@ -13,7 +13,7 @@ from common.utils import fuzzy
 
 logger = logging.getLogger(f'Wanderlust.{__name__.capitalize()}')
 
-COG_VERSION = '2.1.0'
+COG_VERSION = '2.2.0'
 
 DEFAULT_SYSTEM_PROMPT = """Tu es un assistant appelé Wanderlust, qui répond aux demandes d'un groupe d'utilisateurs.
 N'hésite pas à t'exprimer de manière familière, comme tu le ferais avec tes amis, mais sans les saluer en début de réponse. 
@@ -71,9 +71,7 @@ class ChatGPT(commands.Cog):
     def _init_guild_db(self, guild: Optional[discord.Guild] = None):
         guilds = [guild] if guild else self.bot.guilds
         for g in guilds:
-            conn = self.data.get_database(g)
-            cursor = conn.cursor()
-            cursor.execute("""CREATE TABLE IF NOT EXISTS presets (
+            query = """CREATE TABLE IF NOT EXISTS presets (
                 id TEXT PRIMARY KEY,
                 name TEXT,
                 description TEXT,
@@ -83,10 +81,11 @@ class ChatGPT(commands.Cog):
                 guild_id INTEGER,
                 authorized_users TEXT,
                 cog_version TEXT
-                )""")
-            conn.commit()
-            cursor.close()
-            conn.close()
+                )"""
+            self.data.execute(g, query)
+            
+    def cog_unload(self):
+        self.data.close_all_databases()
     
     # Gestion des sessions -----------------------------------------------------
     
@@ -157,24 +156,15 @@ class ChatGPT(commands.Cog):
     # Gestion des presets -----------------------------------------------------
     
     def get_preset(self, guild: discord.Guild, preset_id: str) -> Optional[dict]:
-        conn = self.data.get_database(guild)
-        conn.row_factory = dataio.sqlite3.Row
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM presets WHERE id=?", (preset_id,))
-        preset = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        return dict(preset) if preset else None
+        query = "SELECT * FROM presets WHERE id=?"
+        result = self.data.fetchone(guild, query, (preset_id,))
+        return dict(result) if result else None
+
     
     def get_all_presets(self, guild: discord.Guild) -> List[dict]:
-        conn = self.data.get_database(guild)
-        conn.row_factory = dataio.sqlite3.Row
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM presets")
-        presets = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        return [dict(preset) for preset in presets]
+        query = "SELECT * FROM presets"
+        result = self.data.fetchall(guild, query)
+        return [dict(preset) for preset in result]
     
     def set_preset(self, 
                       guild: discord.Guild, 
@@ -193,20 +183,12 @@ class ChatGPT(commands.Cog):
         if authorized_users not in ['all', 'premium', 'owner']:
             raise ValueError("Le paramètre `authorized_users` doit être 'all', 'premium' ou 'owner'")
 
-        conn = self.data.get_database(guild)
-        cursor = conn.cursor()
-        cursor.execute("INSERT OR REPLACE INTO presets VALUES (?,?,?,?,?,?,?,?,?)", (preset_id, name, description, system_prompt, temperature, author_id, guild.id, authorized_users, COG_VERSION))
-        conn.commit()
-        cursor.close()
-        conn.close()
+        query = "INSERT OR REPLACE INTO presets VALUES (?,?,?,?,?,?,?,?,?)"
+        self.data.execute(guild, query, (preset_id, name, description, system_prompt, temperature, author_id, guild.id, authorized_users, COG_VERSION))
         
     def delete_preset(self, guild: discord.Guild, preset_id: str):
-        conn = self.data.get_database(guild)
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM presets WHERE id=?", (preset_id,))
-        conn.commit()
-        cursor.close()
-        conn.close()
+        query = "DELETE FROM presets WHERE id=?"
+        self.data.execute(guild, query, (preset_id,))
         
  
     # COMMANDES =======================================================

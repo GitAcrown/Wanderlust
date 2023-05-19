@@ -127,24 +127,6 @@ class Quotes(commands.Cog):
             callback=self.quotify_ctx_menu
         )
         self.bot.tree.add_command(self.quotify)
-        
-    @commands.Cog.listener()
-    async def on_ready(self):
-        self._init_guild_db()
-        
-    @commands.Cog.listener()
-    async def on_guild_join(self, guild: discord.Guild):
-        self._init_guild_db(guild)
-
-    def _init_guild_db(self, guild: discord.Guild = None):
-        guilds = [guild] if guild else self.bot.guilds
-        for guild in guilds:
-            conn = self.data.get_database(guild)
-            cursor = conn.cursor()
-            cursor.execute('CREATE TABLE IF NOT EXISTS quotify_logs (message_id INTEGER PRIMARY KEY, channel_id INTEGER, user_id INTEGER)')
-            conn.commit()
-            cursor.close()
-            conn.close()
     
     @app_commands.command(name='quote')
     @app_commands.checks.cooldown(1, 600)
