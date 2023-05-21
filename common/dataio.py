@@ -132,18 +132,43 @@ class CogData:
         cursor.close()
         return result
         
-    def execute(self, obj: DB_TYPES, query: str, *args) -> None:
+    def execute(self, obj: DB_TYPES, query: str, *args, commit: bool = True) -> None:
         """Exécute une requête SQL
 
         :param obj: Objet discord (User, Member, Guild, TextChannel) ou ID de l'objet
         :param query: Requête SQL à exécuter
         :param *args: Arguments de la requête SQL
+        :param commit: Si True, commit les changements sur la base de données immédiatement (True par défaut)
         """
         conn = self.get_database(obj)
         cursor = conn.cursor()
         cursor.execute(query, *args)
-        conn.commit()
+        if commit:
+            conn.commit()
         cursor.close()
+        
+    def executemany(self, obj: DB_TYPES, query: str, *args, commit: bool = True) -> None:
+        """Exécute une requête SQL pour plusieurs lignes
+
+        :param obj: Objet discord (User, Member, Guild, TextChannel) ou ID de l'objet
+        :param query: Requête SQL à exécuter
+        :param *args: Arguments de la requête SQL
+        :param commit: Si True, commit les changements sur la base de données immédiatement (True par défaut)
+        """
+        conn = self.get_database(obj)
+        cursor = conn.cursor()
+        cursor.executemany(query, *args)
+        if commit:
+            conn.commit()
+        cursor.close()
+        
+    def commit(self, obj: DB_TYPES) -> None:
+        """Commit les changements sur une base de données
+
+        :param obj: Objet discord (User, Member, Guild, TextChannel) ou ID de l'objet
+        """
+        conn = self.get_database(obj)
+        conn.commit()
     
         
 def get_cog_data(cog: Union[commands.Cog, str]) -> CogData:
