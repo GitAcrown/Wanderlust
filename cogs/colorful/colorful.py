@@ -697,7 +697,7 @@ class Colorful(commands.GroupCog, group_name='color', description='Gestion des r
             return await interaction.response.send_message("**Succès ·** Le changement automatique de la couleur du rôle a été __désactivé__.", ephemeral=True)
         else:
             self.set_user_aac_status(interaction.user, True)
-            return await interaction.response.send_message("**Succès ·** Le changement automatique de la couleur du rôle a été __activé__.", ephemeral=True)
+            return await interaction.response.send_message("**Succès ·** Le changement automatique de la couleur du rôle a été __activé__.\nVotre couleur sera ajustée automatiquement quand vous changerez votre avatar avec la couleur dominante de celui-ci. Vous pouvez toujours changer votre couleur manuellement si elle ne vous convient pas.", ephemeral=True)
         
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
