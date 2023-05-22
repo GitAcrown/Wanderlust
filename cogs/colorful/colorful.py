@@ -137,14 +137,14 @@ class Colorful(commands.GroupCog, group_name='color', description='Gestion des r
             self.data.executemany(g, """INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)""", DEFAULT_GUILD_SETTINGS.items())
             
     def _init_users_db(self) -> None:
-        self.data.execute('users', """CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, autocolor BOOLEAN DEFAULT 0)""")
+        self.data.execute('users', """CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, aac INTEGER CHECK (aac IN (0, 1)))""")
             
     def get_guild_settings(self, guild: discord.Guild) -> dict:
         result = self.data.fetchall(guild, """SELECT * FROM settings""")
-        return {k: v for k, v in result}
+        return {row['key']: json.loads(row['value']) for row in result}
     
     def set_guild_setting(self, guild: discord.Guild, key: str, value: str) -> None:
-        self.data.execute(guild, """INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)""", key, value)
+        self.data.execute(guild, """INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)""", (key, json.dumps(value)))
         
     def get_boundary_role(self, guild: discord.Guild) -> Optional[discord.Role]:
         role_id = int(self.get_guild_settings(guild)['boundary_role_id'])
@@ -158,16 +158,16 @@ class Colorful(commands.GroupCog, group_name='color', description='Gestion des r
             
     # Users
     
-    def get_user_autocolor_status(self, user: Union[discord.User, discord.Member]) -> bool:
-        result = self.data.fetchone('users', """SELECT autocolor FROM users WHERE user_id = ?""", user.id)
-        return bool(result[0]) if result else False
+    def get_user_aac_status(self, user: Union[discord.User, discord.Member]) -> bool:
+        result = self.data.fetchone('users', """SELECT aac FROM users WHERE user_id = ?""", (user.id,))
+        return bool(result['aac']) if result else False
 
-    def set_user_autocolor_status(self, user: Union[discord.User, discord.Member], status: bool) -> None:
-        self.data.execute('users', """INSERT OR REPLACE INTO users (user_id, autocolor) VALUES (?, ?)""", user.id, int(status))
+    def set_user_aac_status(self, user: Union[discord.User, discord.Member], status: bool) -> None:
+        self.data.execute('users', """INSERT OR REPLACE INTO users (user_id, aac) VALUES (?, ?)""", (user.id, int(status)))
 
     async def update_user_color_role(self, user: discord.Member) -> None:
         """Change automatiquement le rôle de couleur d'un utilisateur en fonction de son avatar"""  
-        if not self.get_user_autocolor_status(user):
+        if not self.get_user_aac_status(user):
             return
         
         guild = user.guild
@@ -208,7 +208,8 @@ class Colorful(commands.GroupCog, group_name='color', description='Gestion des r
             warning = "Un autre rôle coloré est plus haut dans la hiérarchie de vos rôles. Vous ne verrez pas la couleur de ce rôle tant que vous ne le retirerez pas."
             
         image = self.create_color_block(color, False)
-        embed = self.color_embed(color, "Vous avez désormais le rôle **{}**{} (attribué automatiquement par ***Autocolor***)".format(role.name, '\n\n' + warning if warning else ''))
+        embed = self.color_embed(color, "Vous avez désormais le rôle **{}**{}".format(role.name, '\n\n' + warning if warning else ''))
+        embed.title = "Changement automatique de couleur (AAC)"
         with BytesIO() as f:
             image.save(f, 'PNG')
             f.seek(0)
@@ -677,9 +678,9 @@ class Colorful(commands.GroupCog, group_name='color', description='Gestion des r
         
         await interaction.followup.send("**Succès ·** {} rôles ont été supprimés.".format(deleted))
         
-    @app_commands.command(name="autocolor")
+    @app_commands.command(name="auto")
     @app_commands.guild_only()
-    async def toggle_autocolor(self, interaction: discord.Interaction):
+    async def toggle_aac(self, interaction: discord.Interaction):
         """Activer/désactiver le changement automatique de la couleur du rôle lorsque vous changez votre avatar (sur tous les serveurs)"""
         guild = interaction.guild
         if not isinstance(guild, discord.Guild):
@@ -690,17 +691,17 @@ class Colorful(commands.GroupCog, group_name='color', description='Gestion des r
         if int(settings['enabled']) == 0:
             return await interaction.response.send_message("**Erreur ·** Cette fonctionnalité est désactivée sur ce serveur.", ephemeral=True)
         
-        current = self.get_user_autocolor_status(interaction.user)
+        current = self.get_user_aac_status(interaction.user)
         if current:
-            self.set_user_autocolor_status(interaction.user, False)
+            self.set_user_aac_status(interaction.user, False)
             return await interaction.response.send_message("**Succès ·** Le changement automatique de la couleur du rôle a été __désactivé__.", ephemeral=True)
         else:
-            self.set_user_autocolor_status(interaction.user, True)
+            self.set_user_aac_status(interaction.user, True)
             return await interaction.response.send_message("**Succès ·** Le changement automatique de la couleur du rôle a été __activé__.", ephemeral=True)
         
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
-        if before.avatar == after.avatar:
+        if before.display_avatar == after.display_avatar:
             return
         if not before.bot:
             await self.update_user_color_role(after)

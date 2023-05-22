@@ -103,7 +103,7 @@ class CogData:
     # Operations ---------------------
 
     def fetchone(self, obj: DB_TYPES, query: str, *args) -> sqlite3.Row:
-        """Exécute une requête SQL et retourne la première ligne du résultat
+        """Exécute une requête SQL de recherche et retourne la première ligne du résultat
 
         :param obj: Objet discord (User, Member, Guild, TextChannel) ou ID de l'objet
         :param query: Requête SQL à exécuter
@@ -116,9 +116,10 @@ class CogData:
         result = cursor.fetchone()
         cursor.close()
         return result
+
     
     def fetchall(self, obj: DB_TYPES, query: str, *args) -> List[sqlite3.Row]:
-        """Exécute une requête SQL et retourne toutes les lignes du résultat
+        """Exécute une requête SQL de recherche et retourne toutes les lignes du résultat
 
         :param obj: Objet discord (User, Member, Guild, TextChannel) ou ID de l'objet
         :param query: Requête SQL à exécuter
@@ -133,7 +134,7 @@ class CogData:
         return result
         
     def execute(self, obj: DB_TYPES, query: str, *args, commit: bool = True) -> None:
-        """Exécute une requête SQL
+        """Exécute une requête SQL d'édition
 
         :param obj: Objet discord (User, Member, Guild, TextChannel) ou ID de l'objet
         :param query: Requête SQL à exécuter
