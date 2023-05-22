@@ -703,6 +703,11 @@ class Colorful(commands.GroupCog, group_name='color', description='Gestion des r
     async def on_member_update(self, before: discord.Member, after: discord.Member):
         if before.display_avatar == after.display_avatar:
             return
+        
+        settings = self.get_guild_settings(before.guild)
+        if int(settings['enabled']) == 0:
+            return
+        
         if not before.bot:
             await self.update_user_color_role(after)
         
