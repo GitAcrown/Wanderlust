@@ -1,15 +1,13 @@
+import json
 import logging
+from io import BytesIO
 from typing import List, Optional, Union
 
+import colorgram
 import discord
 import requests
-import colorgram
-import json
 from discord import app_commands
 from discord.ext import commands
-from tabulate import tabulate
-from io import BytesIO
-
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 from common import dataio
@@ -138,6 +136,23 @@ class Colorful(commands.GroupCog, group_name='color', description='Gestion des r
             
     def _init_users_db(self) -> None:
         self.data.execute('users', """CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, aac INTEGER CHECK (aac IN (0, 1)))""")
+        
+    # Userdata
+        
+    def dataio_list_user_data(self, user_id: int) -> List[dataio.UserDataEntry]:
+        data = []
+        userdata = self.data.fetchone('users', """SELECT * FROM users WHERE user_id = ?""", (user_id,))
+        if userdata:
+            data.append(dataio.UserDataEntry(user_id, 'users', "Paramètres personnels (ex. Changement auto. de couleur)", importance_level=1))
+        return data
+    
+    def dataio_wipe_user_data(self, user_id: int, table_name: str) -> bool:
+        if table_name == 'users':
+            self.data.execute('users', """DELETE FROM users WHERE user_id = ?""", (user_id,))
+            return True
+        return False
+    
+    # Guild settings
             
     def get_guild_settings(self, guild: discord.Guild) -> dict:
         result = self.data.fetchall(guild, """SELECT * FROM settings""")
