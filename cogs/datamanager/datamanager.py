@@ -11,8 +11,9 @@ from common.utils import fuzzy
 logger = logging.getLogger(f'Wanderlust.{__name__.capitalize()}')
 
 class DataListMenu(discord.ui.View):
-    def __init__(self, user: Union[discord.User, discord.Member], data_entries: Dict[str, List[dataio.UserDataEntry]], initial_interaction: discord.Interaction):
+    def __init__(self, cog: 'DataManager', user: Union[discord.User, discord.Member], data_entries: Dict[str, List[dataio.UserDataEntry]], initial_interaction: discord.Interaction):
         super().__init__(timeout=60)
+        self._cog = cog
         self.user = user
         self.data_entries = data_entries
         self.cogs_names = sorted(list(data_entries.keys()))
@@ -27,7 +28,13 @@ class DataListMenu(discord.ui.View):
         em.set_footer(text=f"Page {self.current_page+1}/{self.max_page}", icon_url=self.user.display_avatar.url)
         
         entries = self.data_entries[cog_name]
-        em.description = "\n".join([f"{str(entry)}" for entry in entries])
+        cog = self._cog.bot.get_cog(cog_name)
+        if cog:
+            text = f"`{cog.description}`\n\n"
+        else:
+            text = ""
+        text += "\n".join([f"{str(entry)}" for entry in entries])
+        em.description = text
         
         return em
     
@@ -80,7 +87,7 @@ class DataManager(commands.GroupCog, group_name='mydata', description="Gestion c
             return await interaction.response.send_message("**Aucune donnée locale enregistrée**\nVous n'avez aucune donnée enregistrée dans les modules du bot.", ephemeral=True)
 
         await interaction.response.defer()
-        menu = DataListMenu(interaction.user, data_entries, interaction)
+        menu = DataListMenu(self, interaction.user, data_entries, interaction)
         await menu.start()
 
     @app_commands.command(name='wipe')
