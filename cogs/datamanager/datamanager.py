@@ -27,7 +27,7 @@ class DataListMenu(discord.ui.View):
         em = discord.Embed(title=f"Données enregistrées pour **`{cog_name}`**", color=self.user.color)
         cog = self._cog.bot.get_cog(cog_name)
         if cog:
-            em.set_footer(text=f"{cog.description}\nPage {self.current_page+1}/{self.max_page}", icon_url=self.user.display_avatar.url)
+            em.set_footer(text=f"{cog.description} • Page {self.current_page+1}/{self.max_page}", icon_url=self.user.display_avatar.url)
         else:
             em.set_footer(text=f"Page {self.current_page+1}/{self.max_page}", icon_url=self.user.display_avatar.url)
         
