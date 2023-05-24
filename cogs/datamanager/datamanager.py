@@ -25,13 +25,15 @@ class DataListMenu(discord.ui.View):
     def get_embed(self):
         cog_name = self.cogs_names[self.current_page]
         em = discord.Embed(title=f"Données enregistrées pour **`{cog_name}`**", color=self.user.color)
-        em.set_footer(text=f"Page {self.current_page+1}/{self.max_page}", icon_url=self.user.display_avatar.url)
-        
-        entries = self.data_entries[cog_name]
         cog = self._cog.bot.get_cog(cog_name)
         if cog:
-            em.description = f"*{cog.description}*"
-        em.add_field(name="Tables de données", value="\n".join([f"{str(entry)}" for entry in entries]))
+            em.set_footer(text=f"{cog.description}\nPage {self.current_page+1}/{self.max_page}", icon_url=self.user.display_avatar.url)
+        else:
+            em.set_footer(text=f"Page {self.current_page+1}/{self.max_page}", icon_url=self.user.display_avatar.url)
+        
+        entries = self.data_entries[cog_name]
+        
+        em.description = "\n".join([f"{str(entry)}" for entry in entries])
         
         return em
     
