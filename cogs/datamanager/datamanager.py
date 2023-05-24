@@ -30,7 +30,7 @@ class DataListMenu(discord.ui.View):
         entries = self.data_entries[cog_name]
         cog = self._cog.bot.get_cog(cog_name)
         if cog:
-            text = f"`{cog.description}`\n\n"
+            text = f"*{cog.description}*\n\n"
         else:
             text = ""
         text += "\n".join([f"{str(entry)}" for entry in entries])
