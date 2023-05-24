@@ -30,11 +30,8 @@ class DataListMenu(discord.ui.View):
         entries = self.data_entries[cog_name]
         cog = self._cog.bot.get_cog(cog_name)
         if cog:
-            text = f"*{cog.description}*\n\n"
-        else:
-            text = ""
-        text += "\n".join([f"{str(entry)}" for entry in entries])
-        em.description = text
+            em.description = f"*{cog.description}*"
+        em.add_field(name="Tables de données", value="\n".join([f"{str(entry)}" for entry in entries]))
         
         return em
     
@@ -42,6 +39,7 @@ class DataListMenu(discord.ui.View):
         return interaction.user.id == self.user.id
     
     async def on_timeout(self):
+        await self.initial_interaction.edit_original_response(view=None)
         self.stop()
         
     async def start(self):
