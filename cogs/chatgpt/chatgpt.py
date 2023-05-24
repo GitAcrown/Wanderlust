@@ -146,7 +146,8 @@ class ChatGPT(commands.Cog):
             return "Erreur lors de la requête à l'API OpenAI : `Réponse vide`"
         
         if 'choices' not in response.json():
-            return "Erreur lors de la requête à l'API OpenAI : `Réponse des servers inattendue`"
+            logger.error(response.json())
+            return "Erreur lors de la requête à l'API OpenAI : `Réponse des serveurs inattendue`"
 
         respdict = response.json()['choices'][0]['message']
         text = respdict['content']
