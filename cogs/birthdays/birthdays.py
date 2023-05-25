@@ -229,10 +229,11 @@ class Birthdays(commands.GroupCog, group_name='bday', description="Inventaire de
 
         today = datetime.now()
         bdays = {k: v.replace(year=today.year) for k, v in bdays.items()}
-        bdays = {k: v for k, v in sorted(bdays.items(), key=lambda item: item[1]) if k in guild.members}
+        # Garder que les futurs anniversaires
+        bdays = {k: v for k, v in sorted(bdays.items(), key=lambda item: item[1]) if k in guild.members and v >= today}
         bdays = list(bdays.items())[:10]
-        msg = "\n".join([f"{u.mention} · {dt.strftime('%d/%m')}" for u, dt in bdays])
-        em = discord.Embed(title=f"10 Prochains anniversaires du serveur", description=msg, color=0x2F3136)
+        msg = "\n".join([f"{u.mention} · <t:{int(dt.timestamp())}:D>" for u, dt in bdays])
+        em = discord.Embed(title=f"Prochains anniversaires du serveur", description=msg, color=0x2F3136)
         await interaction.response.send_message(embed=em)
         
     @app_commands.command(name="setuser")
