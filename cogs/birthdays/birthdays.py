@@ -52,7 +52,7 @@ class Birthdays(commands.GroupCog, group_name='bday', description="Inventaire de
         if self.last_check and self.last_check.day == datetime.today().day:
             return
         
-        print('Checking birthdays')
+        logger.info("Checking birthdays...")
         self.last_check = datetime.today()
         for guild in self.bot.guilds:
             birthdays = self.get_guild_birthdays_today(guild)
@@ -80,6 +80,7 @@ class Birthdays(commands.GroupCog, group_name='bday', description="Inventaire de
                     
                     today = datetime.today()
                     astro = self.get_zodiac_sign(today)
+                    astro = f" · {astro[1]}" if astro else ''
                     # Envoyer un message dans le channel
                     
                     rdm = random.choice(("Aujourd'hui c'est l'anniversaire de", "Nous fêtons aujourd'hui l'anniversaire de", "C'est l'ANNIVERSAIRE de", "Bon anniversaire à", "Joyeux anniversaire à"))
@@ -89,7 +90,7 @@ class Birthdays(commands.GroupCog, group_name='bday', description="Inventaire de
                         desc = f"{rdm} {', '.join([m.mention for m in birthdays[:-1]])} et {birthdays[-1].mention} !"
                     
                     em = discord.Embed(description=desc, color=discord.Color.red())
-                    em.set_footer(text=f"{today.strftime('%d/%m')} · {astro}")
+                    em.set_footer(text=f"{today.strftime('%d/%m')}{astro}")
                     await channel.send(embed=em)
                                     
     # Userdata
