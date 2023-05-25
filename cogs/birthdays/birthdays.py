@@ -4,7 +4,7 @@ from typing import Dict, List, Union, Optional
 import discord
 import json
 import random
-from datetime import datetime
+from datetime import datetime, timezone
 from discord import app_commands
 from discord.ext import commands, tasks
 
@@ -23,7 +23,7 @@ class Birthdays(commands.GroupCog, group_name='bday', description="Inventaire de
         self.bot = bot
         self.data = dataio.get_cog_data(self)
         
-        self.last_check = datetime.now()
+        self.last_check = None
         
     @commands.Cog.listener()
     async def on_ready(self):
@@ -49,46 +49,48 @@ class Birthdays(commands.GroupCog, group_name='bday', description="Inventaire de
     
     @tasks.loop(minutes=1)
     async def check_birthdays(self):
-        if self.last_check.day != datetime.now().day:
-            self.last_check = datetime.now()
+        if self.last_check and self.last_check.day == datetime.today().day:
+            return
         
-            for guild in self.bot.guilds:
-                birthdays = self.get_guild_birthdays_today(guild)
-                if birthdays:
-                    settings = self.get_guild_settings(guild)
-                    if settings['bday_role_id']:
-                        role = guild.get_role(int(settings['bday_role_id']))
-                        if not role:
-                            return
-                        
-                        # Retirer le rôle aux membres qui ne sont plus dans la liste
-                        for member in role.members:
-                            if member not in birthdays:
-                                await member.remove_roles(role)
-                        
-                        # Ajouter le rôle aux membres qui ne l'ont pas encore
-                        for member in birthdays:
-                            if member not in role.members:
-                                await member.add_roles(role)
-                
-                    if settings['bday_channel_id']:
-                        channel = guild.get_channel(int(settings['bday_channel_id']))
-                        if not channel or not isinstance(channel, discord.TextChannel):
-                            return
-                        
-                        today = datetime.today()
-                        astro = self.get_zodiac_sign(today)
-                        # Envoyer un message dans le channel
-                        
-                        rdm = random.choice(("Aujourd'hui c'est l'anniversaire de", "Nous fêtons aujourd'hui l'anniversaire de", "C'est l'ANNIVERSAIRE de", "Bon anniversaire à", "Joyeux anniversaire à"))
-                        if len(birthdays) == 1:
-                            desc = f"{rdm} {birthdays[0].mention} !"
-                        else:
-                            desc = f"{rdm} {', '.join([m.mention for m in birthdays[:-1]])} et {birthdays[-1].mention} !"
-                        
-                        em = discord.Embed(description=desc, color=discord.Color.red())
-                        em.set_footer(text=f"{today.strftime('%d/%m')} · {astro}")
-                        await channel.send(embed=em)
+        print('Checking birthdays')
+        self.last_check = datetime.today()
+        for guild in self.bot.guilds:
+            birthdays = self.get_guild_birthdays_today(guild)
+            if birthdays:
+                settings = self.get_guild_settings(guild)
+                if settings['bday_role_id']:
+                    role = guild.get_role(int(settings['bday_role_id']))
+                    if not role:
+                        return
+                    
+                    # Retirer le rôle aux membres qui ne sont plus dans la liste
+                    for member in role.members:
+                        if member not in birthdays:
+                            await member.remove_roles(role)
+                    
+                    # Ajouter le rôle aux membres qui ne l'ont pas encore
+                    for member in birthdays:
+                        if member not in role.members:
+                            await member.add_roles(role)
+            
+                if settings['bday_channel_id']:
+                    channel = guild.get_channel(int(settings['bday_channel_id']))
+                    if not channel or not isinstance(channel, discord.TextChannel):
+                        return
+                    
+                    today = datetime.today()
+                    astro = self.get_zodiac_sign(today)
+                    # Envoyer un message dans le channel
+                    
+                    rdm = random.choice(("Aujourd'hui c'est l'anniversaire de", "Nous fêtons aujourd'hui l'anniversaire de", "C'est l'ANNIVERSAIRE de", "Bon anniversaire à", "Joyeux anniversaire à"))
+                    if len(birthdays) == 1:
+                        desc = f"{rdm} {birthdays[0].mention} !"
+                    else:
+                        desc = f"{rdm} {', '.join([m.mention for m in birthdays[:-1]])} et {birthdays[-1].mention} !"
+                    
+                    em = discord.Embed(description=desc, color=discord.Color.red())
+                    em.set_footer(text=f"{today.strftime('%d/%m')} · {astro}")
+                    await channel.send(embed=em)
                                     
     # Userdata
         
