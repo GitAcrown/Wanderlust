@@ -152,6 +152,13 @@ class Colorful(commands.GroupCog, group_name='color', description='Gestion des r
             return True
         return False
     
+    def dataio_extract_user_data(self, user_id: int, table_name: str) -> Optional[dict]:
+        if table_name == 'users':
+            userdata = self.data.fetchone('users', """SELECT * FROM users WHERE user_id = ?""", (user_id,))
+            if userdata:
+                return {'aac': bool(userdata['aac'])}
+        return None
+    
     # Guild settings
             
     def get_guild_settings(self, guild: discord.Guild) -> dict:

@@ -1,7 +1,10 @@
 import logging
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Literal
 
 import discord
+import json
+import yaml
+import io
 from discord import app_commands
 from discord.ext import commands
 
@@ -94,8 +97,8 @@ class DataManager(commands.GroupCog, group_name='mydata', description="Gestion c
     async def _wipe_mydata(self, interaction: discord.Interaction, cog_name: str, table_name: str):
         """Efface vos données personnelles enregistrées dans un module (cog) du bot
 
-        :param cog_name: Nom du module (cog) du bot
-        :param table_name: Nom de la table de données du module (cog)
+        :param cog_name: Nom du module  du bot
+        :param table_name: Nom de la table de données du module
         """
         user_id = interaction.user.id
         cog = self.bot.get_cog(cog_name)
@@ -116,6 +119,40 @@ class DataManager(commands.GroupCog, group_name='mydata', description="Gestion c
         else:
             await interaction.response.send_message(f"**Erreur**\nUne erreur est survenue lors de l'effacement des données de la table `{table_name}` du module `{cog_name}`.", ephemeral=True)
         
+    @app_commands.command(name='extract')
+    async def _extract_mydata(self, interaction: discord.Interaction, cog_name: str, format: Literal['json', 'yaml'] = 'yaml'):
+        """Extrait vos données personnelles (toutes tables confondues) enregistrées dans un module du bot au format JSON ou YAML
+
+        :param cog_name: Nom du module du bot
+        :param format: Format de sortie (JSON ou YAML), par défaut YAML
+        :return: Fichier JSON/YAML contenant vos données
+        """
+        user_id = interaction.user.id
+        cog = self.bot.get_cog(cog_name)
+        if not cog:
+            return await interaction.response.send_message(f"**Module `{cog_name}` introuvable**\nLe module `{cog_name}` n'existe pas.", ephemeral=True)
+        
+        cogs_entries = dataio.get_user_data(user_id, [cog])
+        if not cogs_entries:
+            return await interaction.response.send_message(f"**Aucune donnée locale enregistrée**\nVous n'avez aucune donnée enregistrée dans le module `{cog_name}`.", ephemeral=True)
+
+        all_tables = [entry.table_name for entry in cogs_entries[cog_name]]
+        data = dataio.extract_user_data(user_id, cog, all_tables)
+        if not data:
+            return await interaction.response.send_message(f"**Erreur**\nUne erreur est survenue lors de l'extraction des données du module `{cog_name}`.", ephemeral=True)
+
+        # On envoie les données en tant que fichier JSON ou YAML
+        if format == 'json':
+            with io.BytesIO(json.dumps(data, indent=4).encode('utf-8')) as fp:
+                text = f"**Données extraites**\nLes données du module `{cog_name}` ont été extraites avec succès (format JSON)."
+                await interaction.response.send_message(content=text, file=discord.File(fp, filename=f"{cog_name}.json"), ephemeral=True)
+        elif format == 'yaml':
+            with io.BytesIO(yaml.dump(data, indent=4).encode('utf-8')) as fp:
+                text = f"**Données extraites**\nLes données du module `{cog_name}` ont été extraites avec succès (format YAML)."
+                await interaction.response.send_message(content=text, file=discord.File(fp, filename=f"{cog_name}.yaml"), ephemeral=True)
+        
+        
+    @_extract_mydata.autocomplete('cog_name')
     @_wipe_mydata.autocomplete('cog_name')
     async def _cog_name_autocomplete(self, interaction: discord.Interaction, current: str):
         all_cogs = self.bot.cogs
