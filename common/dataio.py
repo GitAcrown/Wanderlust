@@ -261,7 +261,9 @@ def get_user_data(user_id: int, cogs: List[commands.Cog]) -> Dict[str, List[User
     data = {}
     for cog in cogs:
         if hasattr(cog, 'dataio_list_user_data'):
-            data[cog.qualified_name] = cog.dataio_list_user_data(user_id)
+            entries = cog.dataio_list_user_data(user_id)
+            if entries:
+                data[cog.qualified_name] = entries
     return data
 
 def wipe_user_data(user_id: int, cog: commands.Cog, table_names: List[str]) -> Dict[str, bool]:
@@ -278,7 +280,7 @@ def wipe_user_data(user_id: int, cog: commands.Cog, table_names: List[str]) -> D
             data[table_name] = cog.dataio_wipe_user_data(user_id, table_name)
     return data
     
-def extract_user_data(user_id: int, cog: commands.Cog, table_names: List[str]) -> Dict[str, dict]:
+def extract_user_data(user_id: int, cog: commands.Cog, table_names: List[str]) -> Dict[str, Optional[dict]]:
     """Extrait les données de l'utilisateur dans les tables spécifiées
 
     :param user_id: ID de l'utilisateur
