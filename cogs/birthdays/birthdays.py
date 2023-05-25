@@ -1,15 +1,14 @@
 import logging
-from typing import Dict, List, Union, Literal, Optional
+from typing import Dict, List, Union, Optional
 
 import discord
 import json
 import random
-from datetime import datetime, timedelta
+from datetime import datetime
 from discord import app_commands
 from discord.ext import commands, tasks
 
 from common import dataio
-from common.utils import fuzzy
 
 logger = logging.getLogger(f'Wanderlust.{__name__.capitalize()}')
 

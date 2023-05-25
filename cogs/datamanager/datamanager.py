@@ -178,13 +178,14 @@ class DataManager(commands.GroupCog, group_name='mydata', description="Gestion c
     async def _info_mydata(self, interaction: discord.Interaction):
         """Affiche des informations concernant vos données enregistrées"""
         user = interaction.user
+        bot_owner = self.bot.get_user(int(self.bot.config['OWNER']))
         expl_txt = "Les données stockées dans les modules sont utilisées pour vous fournir des fonctionnalités personnalisées et/ou dans le cadre du fonctionnement de certaines commandes.\nCes données sont liées à votre identifiant Discord et ne sont accessibles directement que par le propriétaire du bot, sauf mention contraire."
         expl_em = discord.Embed(title="Informations importantes concernant vos données", description=expl_txt, color=user.color)
         expl_em.add_field(name="Consulter les données utilisées", value=f"Utilisez `/mydata list` pour consulter les données exploitées, par tables, de chaque module.", inline=False)
         expl_em.add_field(name="Effacer vos données", value=f"Afin d'effacer vos données, utilisez `/mydata wipe <module> <table>` :\n• **<module>** représente le module du bot utilisant vos données (ex. `colorful`)\n• **<table>** représente la table de données interne au module (ex. `users`)", inline=False)
         expl_em.add_field(name="Extraire vos données", value=f"Si vous voulez obtenir vos données en brut, vous pouvez faire `/mydata extract` pour obtenir les données de toutes les tables d'un module désigné au format JSON ou YAML (par défaut, car plus lisible).", inline=False)
         expl_em.add_field(name="Classement des données", value="Certaines données sont essentielles au fonctionnement du bot, veuillez prêter attention à cette notation :\n• `[0]` **Données insignifiantes** dont la suppression n'affectera pas votre expérience (données de cache, métadonnées secondaires etc.)\n• `[1]` **Données importantes** mais pas essentielles (ex. paramètres réversibles, préférences etc.)\n• `[2]` **Données critiques** avec des conséquences irréversibles (ex. données de progression, économiques etc.)", inline=False)
-        expl_em.set_footer(text=f"Pour plus d'informations, contactez le propriétaire du bot.")
+        expl_em.set_footer(text=f"Pour plus d'informations, contactez le propriétaire du bot ({str(bot_owner)}).")
         await interaction.response.send_message(embed=expl_em)
 
 async def setup(bot):
