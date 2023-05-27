@@ -44,11 +44,13 @@ class UserPrompt(Prompt):
     
     def to_dicts(self):
         dicts = []
+        username = unidecode.unidecode(self.username)
+        username = ''.join([c for c in username if c.isalnum()]).rstrip()
         if self.context:
             if self.context.author == self._cog.bot.user:
                 dicts.append({'role': 'assistant', 'content': self.context.content})
             else:
-                dicts.append({'role': 'user', 'content': self.context.content, 'name': self.context.author.display_name})
+                dicts.append({'role': 'user', 'content': self.context.content, 'name': username})
         dicts.append(self.to_dict())
         return dicts
         
