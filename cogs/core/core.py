@@ -142,7 +142,7 @@ class Core(commands.Cog):
         cpu = CPUTemperature()
         load = LoadAverage(minutes=1)
         disk = DiskUsage()
-        platform_info = platform.system() + " " + platform.release()
+        platform_info = f"`{platform.system()} {platform.release()} {platform.version()}`"
     
         # Couleur de l'embed en fonction de la température du CPU
         temp_colors = {
@@ -153,7 +153,7 @@ class Core(commands.Cog):
         }
         col = [v for k, v in temp_colors.items() if cpu.temperature < k][0]
         embed = discord.Embed(title="**Infos. Hébergement**", color=col)
-        embed.description = f"{self.bot.user.name} est hébergé sur un Raspberry Pi 4B, sous {platform_info} de manière totalement bénévole par {self.bot.get_user(int(self.bot.config['OWNER']))}." #type: ignore
+        embed.description = f"***{self.bot.user.name}*** est hébergé sur un Raspberry Pi 4B, sous {platform_info} bénévolement par {self.bot.get_user(int(self.bot.config['OWNER']))}." #type: ignore
         embed.add_field(name="Température (CPU)", value=f"{cpu.temperature:.2f}°C", inline=False)
         embed.add_field(name="Charge moyenne (CPU)", value=f"{load.load_average:.2f}%", inline=False)
         embed.add_field(name="Espace disque (Bot)", value=f"{disk.usage:.2f}%", inline=False)
