@@ -138,7 +138,7 @@ class Core(commands.Cog):
     async def _get_rasp_temp(self, interaction: discord.Interaction):
         """Renvoie des informations sur le serveur d'hébergement du bot"""
         cpu = CPUTemperature()
-        load = str(int(LoadAverage(minutes=1).load_average*100))+"%"
+        load = LoadAverage()
         disk = DiskUsage()
         platform_info = f"`{platform.system()} {platform.release()}`"
     
@@ -155,7 +155,7 @@ class Core(commands.Cog):
         embed.add_field(name="Modèle", value="RaspberryPi 4B 4Go")
         embed.add_field(name="OS", value=platform_info)
         embed.add_field(name="Température (CPU)", value=f"{cpu.temperature:.2f}°C")
-        embed.add_field(name="Charge moyenne (CPU)", value=load)
+        embed.add_field(name="Charge moyenne (CPU)", value=f"{load.average_load:.2f}")
         embed.add_field(name="Espace disque utilisé", value=f"{disk.usage:.2f}%")
         await interaction.response.send_message(embed=embed)
 
