@@ -155,7 +155,7 @@ class Core(commands.Cog):
         embed = discord.Embed(title="**Infos. Hébergement**", color=col)
         embed.description = f"***{self.bot.user.name}*** est hébergé sur un Raspberry Pi 4B, sous {platform_info} bénévolement par {self.bot.get_user(int(self.bot.config['OWNER']))}." #type: ignore
         embed.add_field(name="Température (CPU)", value=f"{cpu.temperature:.2f}°C", inline=False)
-        embed.add_field(name="Charge moyenne (CPU)", value=f"{load.load_average:.2f}%", inline=False)
+        embed.add_field(name="Charge moyenne (CPU)", value=f"{load.load_average * 100}%", inline=False)
         embed.add_field(name="Espace disque (Bot)", value=f"{disk.usage:.2f}%", inline=False)
         await interaction.response.send_message(embed=embed)
 
