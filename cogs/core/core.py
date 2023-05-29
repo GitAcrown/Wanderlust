@@ -155,7 +155,7 @@ class Core(commands.Cog):
         embed.add_field(name="Modèle", value="RaspberryPi 4B 4Go")
         embed.add_field(name="OS", value=platform_info)
         embed.add_field(name="Température (CPU)", value=f"{cpu.temperature:.2f}°C")
-        embed.add_field(name="Charge moyenne (CPU)", value=f"{load.average_load:.2f}")
+        embed.add_field(name="Charge moyenne (CPU)", value=f"{load.load_average:.2f}")
         embed.add_field(name="Espace disque utilisé", value=f"{disk.usage:.2f}%")
         await interaction.response.send_message(embed=embed)
 
