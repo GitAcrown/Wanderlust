@@ -2,6 +2,7 @@ from discord.ext import commands, tasks
 from discord import app_commands
 import discord
 import textwrap
+import platform
 import io
 import traceback
 import logging
@@ -139,8 +140,9 @@ class Core(commands.Cog):
     async def _get_rasp_temp(self, interaction: discord.Interaction):
         """Renvoie des informations sur le serveur Raspberry Pi hébergeant le bot"""
         cpu = CPUTemperature()
-        load = LoadAverage()
+        load = LoadAverage(minutes=1)
         disk = DiskUsage()
+        platform_info = platform.system() + " " + platform.release()
     
         # Couleur de l'embed en fonction de la température du CPU
         temp_colors = {
@@ -150,10 +152,11 @@ class Core(commands.Cog):
             60: discord.Color.red()
         }
         col = [v for k, v in temp_colors.items() if cpu.temperature < k][0]
-        embed = discord.Embed(title="**Informations** sur `RaspberryPi 4B`", color=col)
-        embed.add_field(name="Température du CPU", value=f"{cpu.temperature:.2f}°C", inline=False)
-        embed.add_field(name="Charge moyenne", value=f"{load.load_average:.2f}%", inline=False)
-        embed.add_field(name="Espace disque", value=f"{disk.usage:.2f}%", inline=False)
+        embed = discord.Embed(title="**Infos. Hébergement**", color=col)
+        embed.description = f"{self.bot.user.name} est hébergé sur un Raspberry Pi 4B, sous {platform_info} de manière totalement bénévole par {self.bot.get_user(int(self.bot.config['OWNER_ID']))}." #type: ignore
+        embed.add_field(name="Température (CPU)", value=f"{cpu.temperature:.2f}°C", inline=False)
+        embed.add_field(name="Charge moyenne (CPU)", value=f"{load.load_average:.2f}%", inline=False)
+        embed.add_field(name="Espace disque (Bot)", value=f"{disk.usage:.2f}%", inline=False)
         await interaction.response.send_message(embed=embed)
 
 async def setup(bot):
