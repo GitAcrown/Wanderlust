@@ -138,11 +138,11 @@ class Core(commands.Cog):
     
     @tools_group.command(name='info')
     async def _get_rasp_temp(self, interaction: discord.Interaction):
-        """Renvoie des informations sur le serveur Raspberry Pi hébergeant le bot"""
+        """Renvoie des informations sur le serveur d'hébergement du bot"""
         cpu = CPUTemperature()
         load = LoadAverage(minutes=1)
         disk = DiskUsage()
-        platform_info = f"`{platform.system()} {platform.release()} {platform.version()}`"
+        platform_info = f"`{platform.system()} {platform.release()}`"
     
         # Couleur de l'embed en fonction de la température du CPU
         temp_colors = {
@@ -152,11 +152,13 @@ class Core(commands.Cog):
             60: discord.Color.red()
         }
         col = [v for k, v in temp_colors.items() if cpu.temperature < k][0]
-        embed = discord.Embed(title="**Infos. Hébergement**", color=col)
-        embed.description = f"***{self.bot.user.name}*** est hébergé sur un Raspberry Pi 4B, sous {platform_info} bénévolement par {self.bot.get_user(int(self.bot.config['OWNER']))}." #type: ignore
-        embed.add_field(name="Température (CPU)", value=f"{cpu.temperature:.2f}°C", inline=False)
-        embed.add_field(name="Charge moyenne (CPU)", value=f"{load.load_average * 100}%", inline=False)
-        embed.add_field(name="Espace disque (Bot)", value=f"{disk.usage:.2f}%", inline=False)
+        embed = discord.Embed(title="**Informations** concernant l'hébergement", color=col)
+        embed.description = f"***{self.bot.user.name}*** est hébergé bénévolement par {self.bot.get_user(int(self.bot.config['OWNER']))} depuis le 27/05/2023." #type: ignore
+        embed.add_field(name="Serveur", value="RaspberryPi 4B")
+        embed.add_field(name="OS", value=platform_info)
+        embed.add_field(name="Température (CPU)", value=f"{cpu.temperature:.2f}°C")
+        embed.add_field(name="Charge moyenne (CPU)", value=f"{load.load_average * 100}%")
+        embed.add_field(name="Espace disque utilisé", value=f"{disk.usage:.2f}%")
         await interaction.response.send_message(embed=embed)
 
 async def setup(bot):
