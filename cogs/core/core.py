@@ -1,10 +1,13 @@
 from discord.ext import commands, tasks
+from discord import app_commands
+import discord
 import textwrap
 import io
 import traceback
 import logging
 from contextlib import redirect_stdout
 from typing import Optional, Any
+from gpiozero import CPUTemperature, LoadAverage, DiskUsage
 
 logger = logging.getLogger(f'Wanderlust.{__name__.capitalize()}')
 
@@ -127,6 +130,31 @@ class Core(commands.Cog):
             else:
                 self._last_result = ret
                 await ctx.send(f'```py\n{value}{ret}\n```')
+                
+    # ---- Commandes Outils ----
+    
+    tools_group = app_commands.Group(name='tools', description="Outils divers et variés")
+    
+    @tools_group.command(name='info')
+    async def _get_rasp_temp(self, interaction: discord.Interaction):
+        """Renvoie des informations sur le serveur Raspberry Pi hébergeant le bot"""
+        cpu = CPUTemperature()
+        load = LoadAverage()
+        disk = DiskUsage()
+    
+        # Couleur de l'embed en fonction de la température du CPU
+        temp_colors = {
+            30: discord.Color.green(),
+            40: discord.Color.gold(),
+            50: discord.Color.orange(),
+            60: discord.Color.red()
+        }
+        col = [v for k, v in temp_colors.items() if cpu.temperature < k][0]
+        embed = discord.Embed(title="**Informations** sur `RaspberryPi 4B`", color=col)
+        embed.add_field(name="Température du CPU", value=f"{cpu.temperature:.2f}°C", inline=False)
+        embed.add_field(name="Charge moyenne", value=f"{load.load_average:.2f}%", inline=False)
+        embed.add_field(name="Espace disque", value=f"{disk.usage:.2f}%", inline=False)
+        await interaction.response.send_message(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(Core(bot))
