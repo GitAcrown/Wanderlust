@@ -29,6 +29,7 @@ class ChooseColorMenu(discord.ui.View):
         self.index = 0
         
         self.initial_interaction = initial_interaction
+        self.menu_interaction : Optional[discord.WebhookMessage] = None
         self.result = None
         
     @property
@@ -39,7 +40,7 @@ class ChooseColorMenu(discord.ui.View):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         """Vérifie que l'utilisateur est bien le même que celui qui a lancé la commande"""
         if interaction.user != self.initial_interaction.user:
-            await interaction.response.send_message("Vous n'êtes pas l'auteur de cette commande.", ephemeral=True)
+            await interaction.followup.send("Vous n'êtes pas l'auteur de cette commande.", ephemeral=True)
             return False
         return True
     
@@ -62,14 +63,16 @@ class ChooseColorMenu(discord.ui.View):
         with BytesIO() as f:
             self.previews[self.index].save(f, format='png')
             f.seek(0)
-            await self.initial_interaction.response.send_message(embed=self.get_embed(), file=discord.File(f, 'color.png'), view=self)
+            self.menu_interaction = await self.initial_interaction.followup.send(embed=self.get_embed(), file=discord.File(f, 'color.png'), view=self)
             
     async def update(self):
         """Met à jour l'image de la couleur sélectionnée"""
+        if not self.menu_interaction:
+            return
         with BytesIO() as f:
             self.previews[self.index].save(f, format='png')
             f.seek(0)
-            await self.initial_interaction.edit_original_response(embed=self.get_embed(), attachments=[discord.File(f, 'color.png')])
+            await self.menu_interaction.edit(embed=self.get_embed(), attachments=[discord.File(f, 'color.png')])
 
     @discord.ui.button(emoji="<:iconLeftArrow:1078124175631339580>", style=discord.ButtonStyle.grey)
     async def previous(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -93,9 +96,9 @@ class ChooseColorMenu(discord.ui.View):
     @discord.ui.button(label='Valider', style=discord.ButtonStyle.green, row=1)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
         """Valide la couleur sélectionnée"""
-        await interaction.response.defer()
         self.result = self.color_choice
         self.stop()
+        await self.initial_interaction.delete_original_response()
         
     # Annuler
     @discord.ui.button(label="Annuler", style=discord.ButtonStyle.red, row=1)
@@ -618,6 +621,7 @@ class Colorful(commands.GroupCog, group_name='color', description='Gestion des r
         if int(settings['enabled']) == 0:
             return await interaction.response.send_message("**Erreur ·** Cette fonctionnalité est désactivée sur ce serveur.", ephemeral=True)
         
+        await interaction.response.defer()
         avatar = await member.display_avatar.read()
         avatar = Image.open(BytesIO(avatar))
         colors = colorgram.extract(avatar, 5)
@@ -626,14 +630,16 @@ class Colorful(commands.GroupCog, group_name='color', description='Gestion des r
             previews.append(await self.simulate_discord_display(member, color.rgb)) # type: ignore
         view = ChooseColorMenu(self, interaction, colors, previews)
         await view.start()
-        await view.wait()
+        r = await view.wait()
+        if r:
+            return await interaction.followup.send("**Temps écoulé ·** Aucune couleur n'a été choisie.", ephemeral=True)
         if not view.result:
-            return await interaction.response.send_message("**Annulée ·** Aucune couleur n'a été choisie.", ephemeral=True, delete_after=10)
+            return await interaction.followup.send("**Annulée ·** Aucune couleur n'a été choisie.", ephemeral=True)
 
         color = self.rgb_to_hex(view.result.rgb)
         role = await self.create_color_role(guild, request, color)
         if not role:
-            return await interaction.response.send_message("**Erreur ·** Une erreur s'est produite lors de la création du rôle.", ephemeral=True)
+            return await interaction.followup.send("**Erreur ·** Une erreur s'est produite lors de la création du rôle.", ephemeral=True)
 
         await self.organize_color_roles(guild)
 
