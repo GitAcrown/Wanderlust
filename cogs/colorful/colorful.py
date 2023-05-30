@@ -62,7 +62,7 @@ class ChooseColorMenu(discord.ui.View):
         with BytesIO() as f:
             self.previews[self.index].save(f, format='png')
             f.seek(0)
-            await self.initial_interaction.followup.send(embed=self.get_embed(), file=discord.File(f, 'color.png'), view=self)
+            await self.initial_interaction.response.send_message(embed=self.get_embed(), file=discord.File(f, 'color.png'), view=self)
             
     async def update(self):
         """Met à jour l'image de la couleur sélectionnée"""
