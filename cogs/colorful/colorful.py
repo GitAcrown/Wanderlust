@@ -95,7 +95,6 @@ class ChooseColorMenu(discord.ui.View):
         """Valide la couleur sélectionnée"""
         await interaction.response.defer()
         self.result = self.color_choice
-        await self.initial_interaction.delete_original_response()
         self.stop()
         
     # Annuler
@@ -472,7 +471,7 @@ class Colorful(commands.GroupCog, group_name='color', description='Gestion des r
                 url = user.display_avatar.url
                 
             if not url:
-                async for message in interaction.channel.history(limit=30):
+                async for message in interaction.channel.history(limit=20): # On cherche dans les 20 derniers messages
                     if message.attachments:
                         type = message.attachments[0].content_type
                         if type not in ['image/png', 'image/jpeg', 'image/gif']:
