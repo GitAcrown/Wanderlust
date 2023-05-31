@@ -166,7 +166,7 @@ class Core(commands.Cog):
     @app_commands.command(name='info')
     async def _get_bot_info(self, interaction: discord.Interaction):
         """Obtenir des informations sur le bot"""
-        if not isinstance(self.bot.user, discord.User):
+        if not isinstance(self.bot.user, discord.ClientUser):
             return await interaction.response.send_message("Impossible d'obtenir des informations sur le bot.", ephemeral=True)
         
         temp_colors = {
