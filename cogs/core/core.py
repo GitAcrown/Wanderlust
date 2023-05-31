@@ -134,9 +134,9 @@ class Core(commands.Cog):
                 
     # ---- Commandes Outils ----
     
-    @app_commands.command(name='serverinfo')
+    @app_commands.command(name='hostinfo')
     async def _get_rasp_temp(self, interaction: discord.Interaction):
-        """Renvoie des informations sur le serveur d'hébergement du bot"""
+        """Renvoie des informations sur l'hébergement du bot"""
         cpu = CPUTemperature()
         load = LoadAverage()
         disk = DiskUsage()
