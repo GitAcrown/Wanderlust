@@ -190,11 +190,10 @@ class Core(commands.Cog):
         embed.add_field(name="Système", value=sysinfo)
         
         # Calcul de la place occupée par les données du bot
-        total_size = 0
-        for path in Path("data").rglob("*"):
-            total_size += path.stat().st_size
+        total_size = dataio.get_total_db_size()
         total_size = total_size / 1024 / 1024
-        embed.add_field(name="Données", value=f"**Taille** : `{total_size:.2f} Mo`\n**Nb. fichiers** : `{len(list(Path('data').rglob('*')))} fichiers`")
+        total_count = dataio.get_total_db_count()
+        embed.add_field(name="Données", value=f"**Taille** : `{total_size:.2f} Mo`\n**Nb. fichiers** : `{total_count}`")
         
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
         embed.color = col

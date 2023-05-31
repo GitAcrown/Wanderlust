@@ -1,5 +1,6 @@
 import sqlite3
 import discord
+import os
 from discord.ext import commands
 from pathlib import Path
 from typing import Union, Dict, List, Optional, Callable
@@ -171,6 +172,22 @@ class CogData:
         """
         conn = self.get_database(obj)
         conn.commit()
+        
+    # Utils --------------------------
+    
+    def estimate_size(self, obj: DB_TYPES) -> int:
+        """Estime la taille d'une base de données
+
+        :param obj: Objet discord (User, Member, Guild, TextChannel) ou ID de l'objet
+        :return: Taille estimée de la base de données
+        """
+        conn = self.get_database(obj)
+        cursor = conn.cursor()
+        cursor.execute("SELECT page_count * page_size FROM pragma_page_count(), pragma_page_size()")
+        result = cursor.fetchone()
+        cursor.close()
+        return result[0]
+    
     
 class UserDataEntry:
     """Représente un élément de stockage de données pour un utilisateur"""
@@ -236,6 +253,23 @@ def _get_object_db_name(obj: DB_TYPES) -> str:
     if isinstance(obj, (str, int)):
         return str(obj)
     return OBJECT_PATH_STRUCTURE[type(obj)].format(obj=obj)
+
+def get_total_db_size() -> int:
+    """Retourne la taille totale des bases de données se trouvant dans les dossiers /data des cogs"""
+    total_size = 0
+    for cogfile in os.listdir('cogs'):
+        if 'data' in os.listdir(f'cogs/{cogfile}'):
+            for dbfile in os.listdir(f'cogs/{cogfile}/data'):
+                total_size += os.path.getsize(f'cogs/{cogfile}/data/{dbfile}')
+    return total_size
+
+def get_total_db_count() -> int:
+    """Retourne le nombre total de bases de données se trouvant dans les dossiers /data des cogs"""
+    total_count = 0
+    for cogfile in os.listdir('cogs'):
+        if 'data' in os.listdir(f'cogs/{cogfile}'):
+            total_count += len(os.listdir(f'cogs/{cogfile}/data'))
+    return total_count
 
 # Gestion des données utilisateur -----------------------
 
