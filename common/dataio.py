@@ -10,9 +10,10 @@ OBJECT_PATH_STRUCTURE = {
         discord.Guild: "gld_{obj.id}",
         discord.TextChannel: "tch_{obj.id}",
         discord.Thread: "thr_{obj.id}",
+        discord.VoiceChannel: "vch_{obj.id}"
     }
 
-DB_TYPES = Union[discord.User, discord.Member, discord.Guild, discord.TextChannel, discord.Thread, str, int]
+DB_TYPES = Union[discord.User, discord.Member, discord.Guild, discord.TextChannel, discord.Thread, discord.VoiceChannel, str, int]
 
 class CogData:
     """Représente l'ensemble des données d'un Cog"""
