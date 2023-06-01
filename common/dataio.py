@@ -20,7 +20,7 @@ class CogData:
     """Représente l'ensemble des données d'un Cog"""
     def __init__(self, cog_name: str) -> None:
         self.cog_name = cog_name
-        self.data_path = Path(f"cogs/{self.cog_name}")
+        self.cog_folder = Path(f"cogs/{self.cog_name}")
         
         # Cache des connexions aux bases de données
         self._db_cache = {}
@@ -34,7 +34,7 @@ class CogData:
     # Assets -------------------
     
     def _get_assets(self) -> Path:
-        path = self.data_path / "assets"
+        path = self.cog_folder / "assets"
         return path
     
     @property
@@ -48,7 +48,7 @@ class CogData:
     # Databases ----------------
 
     def _get_sqlite_conn(self, obj: DB_TYPES) -> sqlite3.Connection:
-        folder = self.data_path / "data"
+        folder = self.cog_folder / "data"
         folder.mkdir(parents=True, exist_ok=True)
         db_path = folder / f"{_get_object_db_name(obj)}.db"
         return sqlite3.connect(db_path)
@@ -66,7 +66,7 @@ class CogData:
     def _load_existing_databases(self, enable_row_factory: bool = True) -> Dict[str, sqlite3.Connection]:
         """Charge toutes les bases de données du Cog déjà existantes"""
         dbs = {}
-        for db in self.data_path.glob("data/*.db"):
+        for db in self.cog_folder.glob("data/*.db"):
             conn = sqlite3.connect(db)
             if enable_row_factory:
                 conn.row_factory = sqlite3.Row
