@@ -177,7 +177,7 @@ class Core(commands.Cog):
         }
         
         embed = discord.Embed(title=f"**Informations concernant `{self.bot.user}`**")
-        embed.description = f"***{self.bot.user.name}*** est un bot Discord développé par *{self.bot.get_user(int(self.bot.config['OWNER']))}* disponible depuis 4 Mai 2023."
+        embed.description = f"***{self.bot.user.name}*** est un bot développé et maintenu par *{self.bot.get_user(int(self.bot.config['OWNER']))}* disponible depuis le 4 Mai 2023."
         
         cpu = CPUTemperature()
         load = LoadAverage()
