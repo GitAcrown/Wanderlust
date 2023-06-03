@@ -218,7 +218,7 @@ class Quotes(commands.Cog):
         message_date = messages[0].created_at.strftime('%d/%m/%Y')
         content = ' '.join(self.parse_emojis(m.clean_content) for m in messages)
         try:
-            image = self._get_quote_img(user_avatar, f"“{content}”", messages[0].author.name, message_date, possible_colors=gradient_possible_colors, gradient_index=gradient_index, textcolor=text_color)
+            image = self._get_quote_img(user_avatar, f"{content}", messages[0].author.name, message_date, possible_colors=gradient_possible_colors, gradient_index=gradient_index, textcolor=text_color)
         except:
             raise
         with BytesIO() as buffer:
