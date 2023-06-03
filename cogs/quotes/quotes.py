@@ -173,7 +173,7 @@ class Quotes(commands.Cog):
         gradient_color = possible_colors[gradient_index].rgb
         gradient_magnitude = 0.85 + 0.05 * (len(text) / 100)
         img = self._add_gradient(img, gradient_magnitude, gradient_color)
-        font = ImageFont.truetype(fontfile, 54, encoding='unic')
+        font = ImageFont.truetype(fontfile, 56, encoding='unic')
         author_font = ImageFont.truetype(fontfile, 26, encoding='unic')
         draw = ImageDraw.Draw(img)
             
@@ -188,11 +188,11 @@ class Quotes(commands.Cog):
         draw.text((w/2, h - 30), author_text, font=author_font, fill=textcolor, anchor='md')
         
         # Ajouter le texte de la date en dessous de l'auteur
-        date_font = ImageFont.truetype(fontfile, 16, encoding='unic')
-        draw.text((w/2, h - 14), date_text, font=date_font, fill=textcolor, anchor='md')
+        date_font = ImageFont.truetype(fontfile, 17, encoding='unic')
+        draw.text((w/2, h - 13), date_text, font=date_font, fill=textcolor, anchor='md')
         
         # Ajouter une fine ligne de largeur fixe entre le texte de citation et l'auteur
-        draw.line((w/2 - 65, h - 70, w/2 + 65, h - 70), fill=textcolor, width=1)
+        draw.line((w/2 - 64, h - 70, w/2 + 64, h - 70), fill=textcolor, width=1)
         
         return img
 
