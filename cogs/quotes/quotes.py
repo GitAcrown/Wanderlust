@@ -155,7 +155,7 @@ class Quotes(commands.Cog):
         image = Image.open(imgbin)
         return colorgram.extract(image, n)
      
-    def _get_quote_img(self, background: Union[str, BytesIO], text: str, author_text: str, *, possible_colors: List[colorgram.Color], gradient_index: int, textcolor: Literal['white', 'black']) -> Image.Image:
+    def _get_quote_img(self, background: Union[str, BytesIO], text: str, author_text: str, date_text: str, *, possible_colors: List[colorgram.Color], gradient_index: int, textcolor: Literal['white', 'black']) -> Image.Image:
         if len(text) > 500:
             raise ValueError("La longueur du texte doit être inférieure à 500 caractères")
         if len(author_text) > 32:
@@ -165,15 +165,15 @@ class Quotes(commands.Cog):
         
         img = Image.open(background)
         w, h = (512, 512)
-        bw, bh = (w - 20, h - 50)
+        bw, bh = (w - 20, h - 74)
         img = img.convert("RGBA").resize((w, h))
         fontname = "NotoBebasNeue.ttf"
-        fontfile = str(self.data.assets_path / f"{fontname}")
+        fontfile = str(self.data.assets_path / fontname)
 
         gradient_color = possible_colors[gradient_index].rgb
         gradient_magnitude = 0.85 + 0.05 * (len(text) / 100)
         img = self._add_gradient(img, gradient_magnitude, gradient_color)
-        font = ImageFont.truetype(fontfile, 56, encoding='unic')
+        font = ImageFont.truetype(fontfile, 54, encoding='unic')
         author_font = ImageFont.truetype(fontfile, 26, encoding='unic')
         draw = ImageDraw.Draw(img)
             
@@ -184,8 +184,16 @@ class Quotes(commands.Cog):
             font = ImageFont.truetype(fontfile, font.size - 2)
             box = draw.multiline_textbbox((0, 0), wrap, font=font, align='center')
 
-        draw.multiline_text((w/2, bh), wrap, font=font, align='center', fill=textcolor, anchor='md')
-        draw.text((w/2 - 7, h - 16), author_text, font=author_font, fill=textcolor, anchor='md')
+        draw.multiline_text((w/2, bh), wrap, font=font, align='center', fill=textcolor, anchor='md') 
+        draw.text((w/2, h - 30), author_text, font=author_font, fill=textcolor, anchor='md')
+        
+        # Ajouter le texte de la date en dessous de l'auteur
+        date_font = ImageFont.truetype(fontfile, 16, encoding='unic')
+        draw.text((w/2, h - 14), date_text, font=date_font, fill=textcolor, anchor='md')
+        
+        # Ajouter une fine ligne de largeur fixe entre le texte de citation et l'auteur
+        draw.line((w/2 - 65, h - 70, w/2 + 65, h - 70), fill=textcolor, width=1)
+        
         return img
 
     def _add_gradient(self, image: Image.Image, gradient_magnitude=1.0, color: Tuple[int, int, int]=(0, 0, 0)):
@@ -207,16 +215,16 @@ class Quotes(commands.Cog):
         """Crée une image de citation à partir d'un ou plusieurs message(s) (v2)"""
         messages = sorted(messages, key=lambda m: m.created_at)
         user_avatar = BytesIO(await messages[0].author.display_avatar.read())
-        message_year = messages[0].created_at.strftime('%Y')
+        message_date = messages[0].created_at.strftime('%d/%m/%Y')
         content = ' '.join(self.parse_emojis(m.clean_content) for m in messages)
         try:
-            image = self._get_quote_img(user_avatar, f"“{content}”", f'— {messages[0].author.name}, {message_year}', possible_colors=gradient_possible_colors, gradient_index=gradient_index, textcolor=text_color)
+            image = self._get_quote_img(user_avatar, f"“{content}”", messages[0].author.name, message_date, possible_colors=gradient_possible_colors, gradient_index=gradient_index, textcolor=text_color)
         except:
             raise
         with BytesIO() as buffer:
             image.save(buffer, format='PNG')
             buffer.seek(0)
-            desc = f"'{content}'\n— {messages[0].author.name}, {message_year}"
+            desc = f"'{content}'\n{messages[0].author.name}, {message_date}"
             return discord.File(buffer, filename=f"quote_{'_'.join([str(m.id) for m in messages])}.png", description=desc)
         
     async def get_following_messages(self, channel: Union[discord.TextChannel, discord.Thread], message: discord.Message) -> List[discord.Message]:
