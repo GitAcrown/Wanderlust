@@ -136,32 +136,7 @@ class Core(commands.Cog):
                 self._last_result = ret
                 await ctx.send(f'```py\n{value}{ret}\n```')
                 
-    # ---- Commandes Outils ----
-    
-    @app_commands.command(name='hostinfo')
-    async def _get_rasp_temp(self, interaction: discord.Interaction):
-        """Renvoie des informations sur l'hébergement du bot"""
-        cpu = CPUTemperature()
-        load = LoadAverage()
-        disk = DiskUsage()
-        platform_info = f"`{platform.system()} {platform.release()}`"
-    
-        # Couleur de l'embed en fonction de la température du CPU
-        temp_colors = {
-            30: discord.Color.green(),
-            40: discord.Color.gold(),
-            50: discord.Color.orange(),
-            60: discord.Color.red()
-        }
-        col = [v for k, v in temp_colors.items() if cpu.temperature < k][0]
-        embed = discord.Embed(title="**Informations** concernant l'hébergement", color=col)
-        embed.description = f"***{self.bot.user.name}*** est hébergé bénévolement par *{self.bot.get_user(int(self.bot.config['OWNER']))}* depuis le 27/05/2023." #type: ignore
-        embed.add_field(name="Modèle", value="RaspberryPi 4B 4Go")
-        embed.add_field(name="OS", value=platform_info)
-        embed.add_field(name="Température (CPU)", value=f"{cpu.temperature:.2f}°C")
-        embed.add_field(name="Charge moyenne (CPU)", value=f"{load.load_average:.2f}%")
-        embed.add_field(name="Espace disque utilisé", value=f"{disk.usage:.2f}%")
-        await interaction.response.send_message(embed=embed)
+    # ---- Commandes diverses ----
 
     @app_commands.command(name='info')
     async def _get_bot_info(self, interaction: discord.Interaction):
