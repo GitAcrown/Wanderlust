@@ -238,7 +238,7 @@ class Birthdays(commands.GroupCog, group_name='bday', description="Inventaire de
         
     @app_commands.command(name="setuser")
     @app_commands.guild_only()
-    @commands.has_permissions(kick_members=True)
+    @commands.has_permissions(administrator=True)
     async def _set_user_bday(self, interaction: discord.Interaction, user: discord.Member, date: Optional[str] = None):
         """Définir la date d'anniversaire d'un utilisateur
 
