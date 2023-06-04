@@ -411,7 +411,7 @@ class ChatGPT(commands.Cog):
         self.delete_session(channel_id)
         await interaction.response.send_message(f"**Session réinitialisée**\nLa session a été réinitialisée avec le prompt de configuration initial par défaut.")
 
-    @chat_group.command(name='private')
+    @chat_group.command(name='hidden')
     @app_commands.checks.cooldown(1, 20)
     async def send_prompt(self, interaction: discord.Interaction, content: str):
         """Parler avec GPT-3 (Modèle GPT-3.5 Turbo) en privé sur la session en cours"""
