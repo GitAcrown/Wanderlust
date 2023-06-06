@@ -85,13 +85,13 @@ class Birthdays(commands.GroupCog, group_name='bday', description="Inventaire de
                     
                     rdm = random.choice(("Aujourd'hui c'est l'anniversaire de", "Nous fêtons aujourd'hui l'anniversaire de", "C'est l'ANNIVERSAIRE de", "Bon anniversaire à", "Joyeux anniversaire à"))
                     if len(birthdays) == 1:
-                        desc = f"{rdm} {birthdays[0].mention} !"
+                        msg = f"### {rdm} {birthdays[0].mention} !"
                     else:
-                        desc = f"{rdm} {', '.join([m.mention for m in birthdays[:-1]])} et {birthdays[-1].mention} !"
+                        msg = f"### {rdm} {', '.join([m.mention for m in birthdays[:-1]])} et {birthdays[-1].mention} !"
                     
-                    em = discord.Embed(description=desc, color=discord.Color.red())
-                    em.set_footer(text=f"{today.strftime('%d/%m')}{astro}")
-                    await channel.send(embed=em)
+                    msg += f"\n{today.strftime('%d/%m')}{astro}"
+                    
+                    await channel.send(msg)
                                     
     # Userdata
         
