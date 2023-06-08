@@ -92,6 +92,11 @@ class Birthdays(commands.GroupCog, group_name='bday', description="Inventaire de
                     msg += f"\n{today.strftime('%d/%m')}{astro}"
                     
                     await channel.send(msg)
+                    
+    @check_birthdays.before_loop
+    async def before_check_birthdays(self):
+        await self.bot.wait_until_ready()
+        logger.info("Birthdays loop lancée")
                                     
     # Userdata
         
