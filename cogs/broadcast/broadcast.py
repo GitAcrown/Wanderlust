@@ -1,16 +1,13 @@
 import logging
 
 import time
-import json
+import asyncio
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
-from typing import Optional, List, Dict, Any, Tuple
-
-from discord.utils import MISSING
+from typing import Optional
 
 from common import dataio
-from common.utils import fuzzy
 
 logger = logging.getLogger(f'Wanderlust.{__name__.capitalize()}')
 
@@ -40,16 +37,17 @@ class Broadcast(commands.Cog):
                 message TEXT,
                 channel_id INTEGER,
                 repeat_count INTEGER,
-                repeat_interval INTEGER
+                repeat_interval INTEGER,
+                last_broadcast INTEGER DEFAULT 0
                 )"""
             self.data.execute(g, query)
             
     def cog_unload(self):
         self.data.close_all_databases()
         
-    def set_announcement(self, guild: discord.Guild, name: str, message: str, channel: discord.TextChannel, repeat_count: int, repeat_interval: int):
-        query = """INSERT OR REPLACE INTO announcements (name, message, channel_id, repeat_count, repeat_interval) VALUES (?, ?, ?, ?, ?)"""
-        self.data.execute(guild, query, (name.lower(), message, channel.id, repeat_count, repeat_interval))
+    def set_announcement(self, guild: discord.Guild, name: str, message: str, channel: discord.TextChannel, repeat_count: int, repeat_interval: int, last_broadcast: int):
+        query = """INSERT OR REPLACE INTO announcements (name, message, channel_id, repeat_count, repeat_interval, last_broadcast) VALUES (?, ?, ?, ?, ?, ?)"""
+        self.data.execute(guild, query, (name.lower(), message, channel.id, repeat_count, repeat_interval, last_broadcast))
     
     def get_announcement(self, guild: discord.Guild, name: str):
         query = """SELECT * FROM announcements WHERE name = ?"""
@@ -73,9 +71,11 @@ class Broadcast(commands.Cog):
                 channel = self.bot.get_channel(int(announcement['channel_id']))
                 if not isinstance(channel, discord.TextChannel):
                     continue
+                if int(announcement['last_broadcast']) + int(announcement['repeat_interval']) > time.time():
+                    continue
                 await channel.send(announcement['message'])
-                self.set_announcement(guild, announcement['name'], announcement['message'], channel, int(announcement['repeat_count']) - 1, int(announcement['repeat_interval']))
-                if announcement['repeat_count'] - 1 == 0:
+                self.set_announcement(guild, announcement['name'], announcement['message'], channel, int(announcement['repeat_count']) - 1, int(announcement['repeat_interval']), int(time.time()))
+                if int(announcement['repeat_count']) - 1 == 0:
                     self.delete_announcement(guild, announcement['name'])
                     await channel.send(f"**Annonce terminée**\nL'annonce {announcement['name']} a été supprimée car elle a atteint son nombre de répétitions maximum ({announcement['repeat_count']}).", delete_after=60)
     
@@ -89,39 +89,43 @@ class Broadcast(commands.Cog):
     broadgroup = app_commands.Group(name='broadcast', description='Gestionnaire d\'annonces automatisées', guild_only=True, default_permissions=discord.Permissions(manage_channels=True, manage_messages=True))
     
     @broadgroup.command(name='set')
-    async def command_set_announcement(self, interaction: discord.Interaction, name: str, message: str, channel: discord.TextChannel, repeat_count: int, repeat_interval: int):
+    async def command_set_announcement(self, interaction: discord.Interaction, name: str, channel: discord.TextChannel, repeat_count: app_commands.Range[int, 0], repeat_interval: app_commands.Range[int, 5]):
         """Crée ou modifier annonce automatisée
         
         :param name: Nom de l'annonce
-        :param message: Message de l'annonce
         :param channel: Salon de l'annonce
-        :param repeat_count: Nombre de répétition
-        :param repeat_interval: Intervalle de répétition en minutes
+        :param repeat_count: Nombre de répétition (0 = infini)
+        :param repeat_interval: Intervalle de répétition en minutes (min. 5 minutes)
         """
         guild = interaction.guild
         if not isinstance(guild, discord.Guild):
             await interaction.response.send_message('Cette commande ne peut pas être utilisée en dehors d\'un serveur.', ephemeral=True)
             return
-        
-        if repeat_count < 0:
-            await interaction.response.send_message('Le nombre de répétitions doit être supérieur ou égal à 0.', ephemeral=True)
-            return
-        if repeat_interval < 10:
-            await interaction.response.send_message('L\'intervalle de répétition doit être supérieur ou égal à 10 minutes.', ephemeral=True)
-            return
     
+        # Attendre une réponse pour le message
+        await interaction.response.send_message("**En attente du message à répéter...**\nEnvoyez le message à répéter (Expire dans 5m.)", ephemeral=True)
+        try:
+            msg = await self.bot.wait_for('message', check=lambda m: m.author == interaction.user and m.channel == interaction.channel, timeout=300)
+        except asyncio.TimeoutError:
+            await interaction.followup.send('**Temps écoulé**\nVous n\'avez pas envoyé de message à répéter à temps.', ephemeral=True)
+            return
+        message = msg.content
+        try: 
+            await msg.delete()
+        except discord.HTTPException:
+            pass
         
         repeat_seconds = repeat_interval * 60
         if self.get_announcement(guild, name): # Modification	
-            self.set_announcement(guild, name, message, channel, repeat_count, repeat_seconds)
-            return await interaction.response.send_message(f'**Annonce modifiée avec succès**\nElle sera envoyée dans {channel.mention} toutes les {repeat_interval} minutes.', ephemeral=True)
+            self.set_announcement(guild, name, message, channel, repeat_count, repeat_seconds, 0)
+            return await interaction.followup.send(f'**Annonce modifiée avec succès**\nElle sera envoyée dans {channel.mention} toutes les {repeat_interval} minutes.', ephemeral=True)
         
         # Création
         if len(self.get_announcements(guild)) >= MAX_ANNOUCEMENTS_PER_CHANNEL:
-            await interaction.response.send_message(f'Il y a déjà {MAX_ANNOUCEMENTS_PER_CHANNEL} annonces automatisées dans ce serveur. Vous ne pouvez pas en créer plus.', ephemeral=True)
+            await interaction.followup.send(f'Il y a déjà {MAX_ANNOUCEMENTS_PER_CHANNEL} annonces automatisées dans ce serveur. Vous ne pouvez pas en créer plus.', ephemeral=True)
             return
-        self.set_announcement(guild, name, message, channel, repeat_count, repeat_seconds)
-        await interaction.response.send_message(f'**Annonce créée avec succès**\nElle sera envoyée dans {channel.mention} toutes les {repeat_interval} minutes.', ephemeral=True)
+        self.set_announcement(guild, name, message, channel, repeat_count, repeat_seconds, 0)
+        await interaction.followup.send(f'**Annonce créée avec succès**\nElle sera envoyée dans {channel.mention} toutes les {repeat_interval} minutes.', ephemeral=True)
         
     @broadgroup.command(name='delete')
     async def command_delete_announcement(self, interaction: discord.Interaction, name: str):
@@ -166,10 +170,32 @@ class Broadcast(commands.Cog):
 
         embed = discord.Embed(title=f'Annonces automatisées sur `#{chan.name}`', color=0x2F3136)
         for a in announcements:
-            embed.add_field(name=a['name'].capitalize(), value=f"**Message :** `{a['message']}`\n**Répétitions :** `{a['repeat_count']}`\n**Intervalle :** `{a['repeat_interval']} minutes`", inline=False)
+            embed.add_field(name=a['name'].capitalize(), value=f"```{a['message']}```\n**Répétitions restantes :** `{a['repeat_count']}`\n**Intervalle :** `{int(a['repeat_interval']) / 60} minutes`", inline=False)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        
+    @broadgroup.command(name='manual')
+    async def command_manuam_announcement(self, interaction: discord.Interaction, name: str):
+        """Envoie une annonce automatisée immédiatement (décomptera une répétition)
+
+        :param name: Nom de l'annonce à envoyer"""
+        guild = interaction.guild
+        if not isinstance(guild, discord.Guild):
+            await interaction.response.send_message('Cette commande ne peut pas être utilisée en dehors d\'un serveur.', ephemeral=True)
+            return
+        announcement = self.get_announcement(guild, name)
+        if not announcement:
+            await interaction.response.send_message(f"**Annonce introuvable**\nIl n'y a aucune annonce avec le nom `{name}` d'active sur ce serveur", ephemeral=True)
+            return
+        channel = guild.get_channel(int(announcement['channel_id']))
+        if not channel or not isinstance(channel, discord.TextChannel | discord.Thread):
+            await interaction.response.send_message(f"**Annonce introuvable**\nLe salon de l'annonce `{name}` n'existe plus ou son type a changé.", ephemeral=True)
+            return
+        await channel.send(announcement['message'])
+        self.set_announcement(guild, name, announcement['message'], channel, int(announcement['repeat_count']) - 1, int(announcement['repeat_interval']), int(time.time()))
+        if int(announcement['repeat_count']) - 1 == 0:
+            self.delete_announcement(guild, announcement['name'])
+            await channel.send(f"**Annonce terminée**\nL'annonce {announcement['name']} a été supprimée car elle a atteint son nombre de répétitions maximum ({announcement['repeat_count']}).", delete_after=60)
+        await interaction.response.send_message(f"**Annonce envoyée**\nL'annonce {announcement['name']} a été envoyée dans {channel.mention}.", ephemeral=True, delete_after=60)
         
 async def setup(bot):
     await bot.add_cog(Broadcast(bot))
