@@ -189,10 +189,11 @@ class Birthdays(commands.GroupCog, group_name='bday', description="Inventaire de
         await interaction.response.send_message(f"**Date d'anniversaire définie**\nVotre date d'anniversaire a été définie au `{dt.strftime('%d/%m')}`.", ephemeral=True)
 
     @app_commands.command(name="get")
+    @app_commands.rename(user="utilisateur")
     async def _get_bday(self, interaction: discord.Interaction, user: Optional[discord.Member] = None):
         """Afficher la date d'anniversaire d'un utilisateur
         
-        :param user: Membre dont on veut afficher la date d'anniversaire, si vide affiche la date de l'utilisateur
+        :param user: Membre dont on veut afficher la date d'anniversaire, si vide affiche la date de l'invocateur
         """
         u = user or interaction.user
         dt = self.get_user_birthday(u)
@@ -244,6 +245,7 @@ class Birthdays(commands.GroupCog, group_name='bday', description="Inventaire de
     @app_commands.command(name="setuser")
     @app_commands.guild_only()
     @commands.has_permissions(administrator=True)
+    @app_commands.rename(user="utilisateur")
     async def _set_user_bday(self, interaction: discord.Interaction, user: discord.Member, date: Optional[str] = None):
         """Définir la date d'anniversaire d'un utilisateur
 
