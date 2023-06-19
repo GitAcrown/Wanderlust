@@ -10,7 +10,6 @@ from typing import Any, Optional
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
-from gpiozero import CPUTemperature, DiskUsage, LoadAverage
 
 from common import dataio
 
@@ -135,44 +134,7 @@ class Core(commands.Cog):
             else:
                 self._last_result = ret
                 await ctx.send(f'```py\n{value}{ret}\n```')
-                
-    # ---- Commandes diverses ----
-
-    @app_commands.command(name='info')
-    async def _get_bot_info(self, interaction: discord.Interaction):
-        """Obtenir des informations sur le bot"""
-        if not isinstance(self.bot.user, discord.ClientUser):
-            return await interaction.response.send_message("Impossible d'obtenir des informations sur le bot.", ephemeral=True)
-        
-        temp_colors = {
-            30: discord.Color.green(),
-            40: discord.Color.gold(),
-            50: discord.Color.orange(),
-            60: discord.Color.red()
-        }
-        
-        embed = discord.Embed(title=f"**Informations concernant `{self.bot.user}`**")
-        embed.description = f"***{self.bot.user.name}*** est un bot développé et maintenu par *{self.bot.get_user(int(self.bot.config['OWNER']))}* disponible depuis le 4 Mai 2023."
-        
-        cpu = CPUTemperature()
-        load = LoadAverage()
-        disk = DiskUsage()
-        col = [v for k, v in temp_colors.items() if cpu.temperature < k][0]
-        inforasp = f"**Modèle** : `Raspberry Pi 4 Model B`\n**Temp. CPU** : `{cpu.temperature:.2f}°C`\n**Charge moy. CPU** : `{load.load_average:.2f}%`\n**Espace disque** : `{disk.usage:.2f}%`"
-        embed.add_field(name="Hébergement", value=inforasp)
-
-        sysinfo = f"**OS** : `{platform.system()} {platform.release()}`\n**Python** : `{platform.python_version()}`\n**discord.py** : `{discord.__version__}`\n**SQLite** : `{dataio.sqlite3.sqlite_version}`"
-        embed.add_field(name="Système", value=sysinfo)
-        
-        # Calcul de la place occupée par les données du bot
-        total_size = dataio.get_total_db_size()
-        total_size = total_size / 1024 / 1024
-        total_count = dataio.get_total_db_count()
-        embed.add_field(name="Données", value=f"**Taille** : `{total_size:.2f} Mo`\n**Nb. fichiers** : `{total_count}`")
-        
-        embed.set_thumbnail(url=self.bot.user.display_avatar.url)
-        embed.color = col
-        await interaction.response.send_message(embed=embed)
+       
 
 async def setup(bot):
     await bot.add_cog(Core(bot))
