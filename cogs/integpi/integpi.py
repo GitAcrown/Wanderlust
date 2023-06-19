@@ -72,14 +72,16 @@ class IntegPi(commands.GroupCog, group_name="pi", description="Intégrations ré
                     continue
                 
                 # calcul du point de rosée  (formule de Heinrich Gustav Magnus-Tetens)
-                alpha = math.log(humidite / 100.0) + (17.27 * temperature) / (237.3 + temperature)
+                alpha = math.log(humidite / 100.0) + (17.27 * temperature) / (237.3 + temperature) #type: ignore
                 rosee = (237.3 * alpha) / (17.27 - alpha)
 
                 #calcul de l'humidex 
-                humidex = temperature + 0.5555 * (6.11 * math.exp(5417.753 * (1 / 273.16 - 1 / (273.15 + rosee))) - 10)
+                humidex = temperature + 0.5555 * (6.11 * math.exp(5417.753 * (1 / 273.16 - 1 / (273.15 + rosee))) - 10) #type: ignore
 
                 embed = discord.Embed(title=f"**Informations concernant le Raspberry Pi**", color=0x2b2d31)
-                embed.add_field(name="Température", value=f"**CPU** : `{CPUTemperature().temperature:.2f}°C`\n**Ambiante** : `{temperature:.2f}°C`")
+                owner = self.bot.get_user(int(self.bot.config['OWNER']))
+                embed.description = f"Ces informations proviennent d'un capteur DHT22 intégré au Raspberry Pi hébergeant ce bot, chez {owner}."
+                embed.add_field(name="Température", value=f"`{temperature:.2f}°C`\n(CPU `{CPUTemperature().temperature:.2f}°C`)")
                 embed.add_field(name="Humidité", value=f"`{humidite:.2f}%`")
                 embed.add_field(name="Point de rosée¹", value=f"`{rosee:.2f}°C`")
                 embed.add_field(name="Temp. ressentie (Humidex)²", value=f"`{humidex:.2f}°C`")
@@ -87,7 +89,7 @@ class IntegPi(commands.GroupCog, group_name="pi", description="Intégrations ré
                 return await interaction.followup.send(embed=embed)
             except RuntimeError as error:
                 #print(error.args[0])
-                return await interaction.followup.send("Impossible d'obtenir les informations sur le Raspberry Pi.")
+                continue
             except Exception as error:
                 self.dhtDevice.exit()
                 if reload_dht:
