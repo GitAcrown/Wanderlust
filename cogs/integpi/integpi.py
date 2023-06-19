@@ -62,7 +62,9 @@ class IntegPi(commands.GroupCog, group_name="pi", description="Intégrations ré
         
     @app_commands.command(name='stats')
     async def _get_rasp_stats(self, interaction: discord.Interaction, reload_dht: Optional[bool] = False):
-        """Affiche diverses informations sur le Raspberry Pi"""
+        """Affiche diverses informations sur le Raspberry Pi
+        
+        :param reload_dht: Force le rechargement du capteur DHT22 en cas d'erreur de lecture"""
         await interaction.response.defer()
         while True:
             try:
