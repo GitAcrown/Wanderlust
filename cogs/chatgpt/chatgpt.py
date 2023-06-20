@@ -2,7 +2,6 @@ import logging
 import openai_async as openai
 
 import unidecode
-import time
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
@@ -13,7 +12,7 @@ from common.utils import fuzzy
 
 logger = logging.getLogger(f'Wanderlust.{__name__.capitalize()}')
 
-COG_VERSION = '2.2.0'
+COG_VERSION = '2.3.0'
 
 DEFAULT_SYSTEM_PROMPT = """Tu es un assistant appelé Wanderlust, qui répond aux demandes d'un groupe d'utilisateurs.
 N'hésite pas à t'exprimer de manière familière, comme tu le ferais avec tes amis, mais sans les saluer en début de réponse. 
@@ -108,9 +107,9 @@ class ChatGPT(commands.Cog):
             self.get_session(channel_id)
         self.sessions[channel_id]['prompts'].append(prompt)
         
-        # On retire les prompts après les 8 derniers sauf le tout premier (system prompt)
-        if len(self.sessions[channel_id]['prompts']) > 8:
-            self.sessions[channel_id]['prompts'] = [self.sessions[channel_id]['prompts'][0]] + self.sessions[channel_id]['prompts'][-7:]
+        # On retire les prompts après les 10 derniers sauf le tout premier (system prompt)
+        if len(self.sessions[channel_id]['prompts']) > 10:
+            self.sessions[channel_id]['prompts'] = [self.sessions[channel_id]['prompts'][0]] + self.sessions[channel_id]['prompts'][-9:]
     
     async def get_response(self, channel_id: int):
         session = self.get_session(channel_id)
@@ -248,8 +247,8 @@ class ChatGPT(commands.Cog):
             await interaction.response.send_message(f"**Description trop longue**\nLa description du preset ne peut pas dépasser 100 caractères.", ephemeral=True)
             return
         
-        if len(system_prompt) > 500:
-            await interaction.response.send_message(f"**Prompt trop long**\nLe prompt de configuration initial ne peut pas dépasser 500 caractères.", ephemeral=True)
+        if len(system_prompt) > 1000:
+            await interaction.response.send_message(f"**Prompt trop long**\nLe prompt de configuration initial ne peut pas dépasser 1000 caractères.", ephemeral=True)
             return
         if temperature < 0.1 or temperature > 2.0:
             await interaction.response.send_message(f"**Température invalide**\nLa température doit être comprise entre 0.1 et 2.0.", ephemeral=True)
@@ -299,7 +298,7 @@ class ChatGPT(commands.Cog):
         
     @preset_group.command(name='use')
     @app_commands.guild_only()
-    @app_commands.checks.cooldown(1, 60)
+    @app_commands.checks.cooldown(1, 30)
     async def use_preset(self, interaction: discord.Interaction, preset_id: str):
         """Lancer une session d'IA avec un preset de configuration sur ce serveur"""
         guild = interaction.guild
@@ -366,8 +365,8 @@ class ChatGPT(commands.Cog):
         else:
             is_premium = author.premium_since is not None
             
-        if len(system_prompt) > 500:
-            await interaction.response.send_message(f"**Prompt trop long**\nLe prompt de configuration initial ne peut pas dépasser 500 caractères.", ephemeral=True)
+        if len(system_prompt) > 1000:
+            await interaction.response.send_message(f"**Prompt trop long**\nLe prompt de configuration initial ne peut pas dépasser 1000 caractères.", ephemeral=True)
             return
         
         if temperature < 0.1 or temperature > 2.0:
