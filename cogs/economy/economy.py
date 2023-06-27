@@ -1,10 +1,7 @@
-import enum
 import json
-import locale
 import logging
 from collections import namedtuple
-from datetime import date, datetime, timedelta
-import re
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Union
 
 import discord
@@ -19,26 +16,10 @@ from common.utils import fuzzy, pretty
 logger = logging.getLogger(f'Wanderlust.{__name__.capitalize()}')
 
 DEFAULT_SETTINGS = {
-    'CurrencyString': {
-        'type': str,
-        'default': '✦',
-        'description': 'Symbole de la monnaie'
-    },
-    'AllowanceAmount': {
-        'type': int,
-        'default': 200,
-        'description': 'Montant de la paie quotidienne'
-    },
-    'AllowanceLimit': {
-        'type': int,
-        'default': 5000,
-        'description': 'Limite max. pour recevoir la paie quotidienne'
-    },
-    'DefaultBalance': {
-        'type': int,
-        'default': 100,
-        'description': 'Solde à la création du compte'
-    }
+    'CurrencyString': '✦',
+    'AllowanceAmount': 200,
+    'AllowanceLimit': 5000,
+    'DefaultBalance':  100
 }
 
 TRANSACTION_EXPIRATION_DELAY = 86400 * 7 # 7 days
@@ -91,7 +72,7 @@ class TrsHistoryView(discord.ui.View):
         if self.pages:
             await self.initial_interaction.response.send_message(embed=self.pages[self.current_page], view=self)
         else:
-            await self.initial_interaction.response.send_message("Votre historique de transactions est vide.")
+            await self.initial_interaction.response.send_message("Cet historique de transactions est vide.")
             self.stop()
             return self.clear_items()
         self.message = await self.initial_interaction.original_response()
@@ -149,7 +130,7 @@ class Transaction:
     
     def save(self) -> None:
         query = """INSERT OR REPLACE INTO transactions (id, timestamp, delta, description, member_id, extras) VALUES (?, ?, ?, ?, ?, ?)"""
-        self.cog.data.execute(self.account.member.guild, query, (self.id, self.timestamp, self.delta, self.description, self.account.member.id, json.dumps(self.extras)))
+        self.cog.data.execute(self.account.member.guild, query, (self.id, self.timestamp, self.delta, self.description, self.account.member.id, json.dumps(self.extras, ensure_ascii=False)))
         
         # Remove expired transactions
         self.cog.delete_expired_transactions(self.account.member.guild)
@@ -203,7 +184,8 @@ class Account:
         return NotImplemented
         
     def __initiate_account(self) -> None:
-        self.cog.data.execute(self.member.guild, """INSERT OR IGNORE INTO accounts VALUES (?, ?)""", (self.member.id, DEFAULT_SETTINGS['DefaultBalance']['default']))
+        guild_default = self.cog._get_settings(self.guild, 'DefaultBalance')
+        self.cog.data.execute(self.member.guild, """INSERT OR IGNORE INTO accounts VALUES (?, ?)""", (self.member.id, int(guild_default)))
     
     # Balance -----------------------------------------------------------------
     def _get_balance(self) -> int:
@@ -259,12 +241,13 @@ class Account:
 
     # Utils -------------------------------------------------------------------
     
-    def balance_variation(self, since: datetime | float):
+    def balance_variation(self, since: datetime | float) -> int:
         """Renvoie la variation du solde depuis une date"""
         if isinstance(since, datetime):
             since = since.timestamp()
         query = """SELECT SUM(delta) FROM transactions WHERE member_id = ? AND timestamp >= ?"""
-        return self.cog.data.fetchone(self.member.guild, query, (self.member.id, since))['SUM(delta)']
+        r = self.cog.data.fetchone(self.member.guild, query, (self.member.id, since))['SUM(delta)']
+        return int(r) if r else 0
 
     def embed(self) -> discord.Embed:
         """Renvoie un embed représentant le compte"""
@@ -275,12 +258,14 @@ class Account:
         em.add_field(name="Var. 24h", value=pretty.codeblock(f'{balancevar:+}', lang='diff'))
         
         lb = self.cog.data.fetchone(self.member.guild, """SELECT COUNT(*) FROM accounts WHERE balance > ?""", (self.balance,))['COUNT(*)']
-        em.add_field(name="Rang", value=pretty.codeblock(f'#{lb}e'))
+        if not lb:
+            lb = 1
+        em.add_field(name="Rang", value=pretty.codeblock(f'#{lb}'))
         
         transactions = self.get_transactions()
         if transactions:
-            txt = '\n'.join([f'`{tr.delta:+}` · {pretty.troncate_text(tr.description, 50)}' for tr in transactions][:5])
-            em.add_field(name="Dernières transactions", value=pretty.codeblock(txt), inline=False)
+            txt = '\n'.join([f'{tr.delta:+} · {pretty.troncate_text(tr.description, 50)}' for tr in transactions][:5])
+            em.add_field(name="Dernières transactions", value=pretty.codeblock(txt, lang='diff'), inline=False)
     
         em.set_thumbnail(url=self.member.display_avatar.url)
         return em
@@ -308,11 +293,11 @@ class Rule:
         return hash(self.id)
     
     def __initiate_rule(self):
-        self.cog.data.execute(self.target.guild, """INSERT OR IGNORE INTO rules (id, value) VALUES (?, ?)""", (self.id, json.dumps(self.value)))
+        self.cog.data.execute(self.target.guild, """INSERT OR IGNORE INTO rules (id, value) VALUES (?, ?)""", (self.id, self.value))
 
     def save(self):
         """Met à jour la règle dans la base de données"""
-        self.cog.data.execute(self.target.guild, """UPDATE rules SET value = ? WHERE id = ?""", (json.dumps(self.value), self.id))
+        self.cog.data.execute(self.target.guild, """UPDATE rules SET value = ? WHERE id = ?""", (self.value, self.id))
         
     def delete(self):
         """Supprime la règle de la base de données"""
@@ -323,8 +308,7 @@ class Rule:
         r = cog.data.fetchone(target.guild, """SELECT * FROM rules WHERE id = ?""", (f'{target.id}@{name}',))
         if r:
             # Convertir automatiquement la valeur en fonction du type de la valeur par défaut
-            value = json.loads(r['value'])
-            value = type(default_value)(value)
+            value = type(default_value)(r['value'])
             return cls(cog, target, name, value)
         return cls(cog, target, name, default_value)
         
@@ -350,7 +334,7 @@ class Economy(commands.Cog):
             balance INTEGER CHECK (balance >= 0)
             )"""
         transactions = """CREATE TABLE IF NOT EXISTS transactions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id TEXT PRIMARY KEY,
             timestamp REAL,
             delta INTEGER,
             description TEXT,
@@ -373,8 +357,7 @@ class Economy(commands.Cog):
             self.data.execute(g, settings, commit=False)
             self.data.commit(g)
             
-            default = [(k, v['default']) for k, v in DEFAULT_SETTINGS.items()]
-            self.data.executemany(g, "INSERT OR IGNORE INTO settings VALUES (?, ?)", default)
+            self.data.executemany(g, """INSERT OR IGNORE INTO settings (name, value) VALUES (?, ?)""", DEFAULT_SETTINGS.items())
         
     @commands.Cog.listener()
     async def on_ready(self):
@@ -416,19 +399,20 @@ class Economy(commands.Cog):
     # Settings -----------------------------------------------------------------
     
     def _get_settings(self, guild: discord.Guild, name: str | None = None) -> Union[dict, Any]:
-        """Renvoie la valeur d'un paramètre de configuration"""
-        r = self.data.fetchone(guild, "SELECT value FROM settings WHERE name = ?", (name,))
-        if name:
-            return DEFAULT_SETTINGS[name]['type'](r['value'])
-        return {k: DEFAULT_SETTINGS[k]['type'](v) for k, v in dict(r).items()}
+        """Renvoie la valeur d'un paramètre de configuration ou tous les paramètres de configuration"""
+        if name is None:
+            r = self.data.fetchall(guild, "SELECT * FROM settings")
+            return {row['name']: row['value'] for row in r}
+        else:
+            return self.data.fetchone(guild, "SELECT value FROM settings WHERE name = ?", (name,))['value']
     
     def _set_settings(self, guild: discord.Guild, name: str, value: Any) -> None:
         """Modifie la valeur d'un paramètre de configuration"""
-        self.data.execute(guild, "INSERT OR REPLACE INTO settings VALUES (?, ?)", (name, json.dumps(value)))
+        self.data.execute(guild, "INSERT OR REPLACE INTO settings VALUES (?, ?)", (name, value))
     
     def get_currency_string(self, guild: discord.Guild) -> str:
         """Renvoie le symbole de la monnaie"""
-        return self._get_settings(guild, 'CurrencyString')
+        return str(self._get_settings(guild, 'CurrencyString'))
     
     # Accounts -----------------------------------------------------------------
     
@@ -439,7 +423,7 @@ class Economy(commands.Cog):
     def get_accounts(self, guild: discord.Guild) -> List[Account]:
         """Renvoie les comptes bancaires de tous les membres"""
         query = """SELECT * FROM accounts"""
-        members = {m.id: m for m in guild.members if not m.bot}
+        members = {m.id: m for m in guild.members}
         datam = self.data.fetchall(guild, query)
         return [Account(self, members[data['member_id']]) for data in datam]
     
@@ -562,7 +546,7 @@ class Economy(commands.Cog):
         currency = self.guild_currency(interaction.guild)
         
         # Calcul de l'allocation
-        amount, limit = settings['AllowanceAmount'], settings['AllowanceLimit']
+        amount, limit = int(settings['AllowanceAmount']), int(settings['AllowanceLimit'])
         if amount <= 0 or limit <= 0:
             return await interaction.response.send_message("**Fonctionnalité désactivée**\nL'allocation quotidienne est désactivée sur ce serveur", ephemeral=True)
         
@@ -654,7 +638,7 @@ class Economy(commands.Cog):
         for i in enumerate(lb[:20], start=1):
             chunks.append((i[0], i[1].member.name, i[1].balance))
         embed.description = pretty.codeblock(tabulate(chunks, headers=['#', 'Membre', 'Solde']))
-        embed.set_footer(text=f"Solde moyen : {pretty.humanize_number(average)}{currency}\nSolde médian : {pretty.humanize_number(median)}{currency}\nTotal en circulation : {pretty.humanize_number(self.get_guild_total_balance(interaction.guild))}{currency}")
+        embed.set_footer(text=f"Solde moyen : {pretty.humanize_number(average)}{currency} | Solde médian : {pretty.humanize_number(median)}{currency}\nTotal en circulation : {pretty.humanize_number(self.get_guild_total_balance(interaction.guild))}{currency}")
         
         await interaction.response.send_message(embed=embed)
         
