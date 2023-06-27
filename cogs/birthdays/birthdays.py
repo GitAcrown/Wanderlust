@@ -223,23 +223,24 @@ class Birthdays(commands.GroupCog, group_name='bday', description="Inventaire de
     @app_commands.command(name="list")
     @app_commands.guild_only()
     async def _list_bday(self, interaction: discord.Interaction):
-        """Afficher la liste des 10 prochains anniversaires du serveur"""
+        """Afficher la liste des 10 prochains anniversaires du serveur (si définis)"""
         guild = interaction.guild
         if not guild:
             await interaction.response.send_message("**Erreur**\nCette commande ne peut être utilisée que sur un serveur.", ephemeral=True)
             return
-        bdays = self.get_guild_birthdays(guild)
-        if not bdays:
+        all_bdays = self.get_guild_birthdays(guild)
+        if not all_bdays:
             await interaction.response.send_message("**Aucune date d'anniversaire définie**\nAucun membre du serveur n'a défini de date d'anniversaire.", ephemeral=True)
             return
 
         today = datetime.now()
-        bdays = {k: v.replace(year=today.year) for k, v in bdays.items()}
+        bdays = {k: v.replace(year=today.year) for k, v in all_bdays.items()}
         # Garder que les futurs anniversaires
         bdays = {k: v for k, v in sorted(bdays.items(), key=lambda item: item[1]) if k in guild.members and v >= today}
         bdays = list(bdays.items())[:10]
         msg = "\n".join([f"{u.mention} · <t:{int(dt.timestamp())}:D>" for u, dt in bdays])
         em = discord.Embed(title=f"Prochains anniversaires du serveur", description=msg, color=0x2F3136)
+        em.set_footer(text=f"Anniversaires enregistrés : {len(all_bdays)}")
         await interaction.response.send_message(embed=em)
         
     @app_commands.command(name="setuser")
