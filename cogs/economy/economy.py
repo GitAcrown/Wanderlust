@@ -528,7 +528,7 @@ class Economy(commands.Cog):
         try:
             strs = sender.withdraw(amount, reason=f"Don à {member.display_name}")
         except ValueError:
-            return await interaction.response.send_message(f"**Solde insuffisant**\nVous n'avez pas assez de crédits pour effectuer ce don", ephemeral=True)
+            return await interaction.response.send_message(f"**Solde insuffisant.**\nVous n'avez pas assez de crédits pour effectuer ce don", ephemeral=True)
         else:
             rtrs = receiver.deposit(amount, reason=f"Don de {interaction.user.display_name}" if not reason else f"{sender.member} » {reason}")
             rtrs.extras['linked_transaction'] = strs.id
@@ -536,7 +536,7 @@ class Economy(commands.Cog):
             rtrs.save()
             strs.save()
             
-            await interaction.response.send_message(f"**Don effectué**\nVous avez donné {pretty.humanize_number(amount)}{currency} à {member.mention}")
+            await interaction.response.send_message(f"**Don effectué !**\nVous avez donné {pretty.humanize_number(amount)}{currency} à {member.mention}" + (f"\n**Raison :** *{reason}*" if reason else ""))
 
     @bank_commands.command(name='allowance')
     async def _bank_allowance(self, interaction: discord.Interaction):
@@ -548,26 +548,26 @@ class Economy(commands.Cog):
         # Calcul de l'allocation
         amount, limit = int(settings['AllowanceAmount']), int(settings['AllowanceLimit'])
         if amount <= 0 or limit <= 0:
-            return await interaction.response.send_message("**Fonctionnalité désactivée**\nL'allocation quotidienne est désactivée sur ce serveur", ephemeral=True)
+            return await interaction.response.send_message("**Fonctionnalité désactivée.**\nL'allocation quotidienne est désactivée sur ce serveur", ephemeral=True)
         
         if account.balance >= limit:
-            return await interaction.response.send_message(f"**Solde trop élevé**\nVous avez déjà atteint le montant maximum pour recevoir une allocation quotidienne ({pretty.humanize_number(limit)}{currency})", ephemeral=True)
+            return await interaction.response.send_message(f"**Solde trop élevé !**\nVous avez déjà atteint le montant maximum pour recevoir une allocation quotidienne ({pretty.humanize_number(limit)}{currency})", ephemeral=True)
         
         # Vérification de la dernière allocation
         today = datetime.now().strftime('%Y-%m-%d')
         last = Rule.load(self, interaction.user, 'LastAllowance', default_value='')
         if last.value == today:
-            return await interaction.response.send_message(f"**Allocation déjà reçue**\nVous avez déjà reçu votre allocation quotidienne aujourd'hui", ephemeral=True)
+            return await interaction.response.send_message(f"**Allocation déjà reçue.**\nVous avez déjà reçu votre allocation quotidienne aujourd'hui", ephemeral=True)
             
         redux = account.balance / limit
         amount = round(amount * (1 - redux))
         if amount <= 0:
-            return await interaction.response.send_message(f"**Solde trop élevé**\nL'aide auquel vous avez le droit est trop petite pour vous être versée", ephemeral=True)
+            return await interaction.response.send_message(f"**Solde trop élevé !**\nL'aide auquel vous avez le droit est trop petite pour vous être versée", ephemeral=True)
         
         account.deposit(amount, reason="Allocation quotidienne").save()
         last.value = today
         last.save()
-        await interaction.response.send_message(f"**Allocation quotidienne**\nVous avez reçu {pretty.humanize_number(amount)}{currency} d'aide au titre de l'allocation quotidienne du serveur !")
+        await interaction.response.send_message(f"**Allocation quotidienne versée.**\nVous avez reçu {pretty.humanize_number(amount)}{currency} d'aide au titre de l'allocation quotidienne du serveur !")
         
     bankmod = app_commands.Group(name='bankmod', description="Commandes de modération bancaire", guild_only=True, default_permissions=discord.Permissions(manage_messages=True))
     
@@ -581,7 +581,7 @@ class Economy(commands.Cog):
         """
         account = self.get_account(member)
         account.set(amount, reason="Modification manuelle").save()
-        await interaction.response.send_message(f"**Solde modifié**\nLe solde de {member.mention} a été modifié à {pretty.humanize_number(amount)}{self.guild_currency(interaction.guild)}")
+        await interaction.response.send_message(f"**Solde modifié.**\nLe solde de {member.mention} a été modifié à {pretty.humanize_number(amount)}{self.guild_currency(interaction.guild)}")
     
     @bankmod.command(name='reset')
     @app_commands.rename(member='membre')
@@ -592,7 +592,7 @@ class Economy(commands.Cog):
         """
         account = self.get_account(member)
         account.reset(reason="Réinitialisation manuelle").save()
-        await interaction.response.send_message(f"**Solde réinitialisé**\nLe solde de {member.mention} a été réinitialisé")
+        await interaction.response.send_message(f"**Solde réinitialisé.**\nLe solde de {member.mention} a été réinitialisé")
         
     @bankmod.command(name='settings')
     @app_commands.rename(name='nom', value='valeur')
@@ -603,14 +603,14 @@ class Economy(commands.Cog):
         :param value: Nouvelle valeur du paramètre
         """
         if name not in self._get_settings(interaction.guild):
-            return await interaction.response.send_message(f"**Paramètre inconnu**\nLe paramètre `{name}` n'existe pas", ephemeral=True)
+            return await interaction.response.send_message(f"**Paramètre inconnu.**\nLe paramètre `{name}` n'existe pas", ephemeral=True)
         
         try:
             self._set_settings(interaction.guild, name, value)
         except ValueError as e:
-            return await interaction.response.send_message(f"**Erreur lors de la modification de la valeur**\n`{e}`", ephemeral=True)
+            return await interaction.response.send_message(f"**Erreur lors de la modification de la valeur :**\n`{e}`", ephemeral=True)
         
-        await interaction.response.send_message(f"**Paramètre modifié**\nLe paramètre `{name}` a été modifié par `{value}`")
+        await interaction.response.send_message(f"**Paramètre modifié.**\nLe paramètre `{name}` a été modifié par `{value}`")
         
     @_bankmod_settings.autocomplete('name')
     async def autocomplete_callback(self, interaction: discord.Interaction, current: str):
