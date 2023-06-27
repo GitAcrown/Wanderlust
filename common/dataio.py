@@ -197,9 +197,9 @@ class UserDataEntry:
         self.table_desc = table_desc # Description de la table (bref résumé de son contenu)
         
         # Niveau d'importance des données stockées dans cette table
-        # 0 (ᵃ) = Données insignifiantes (peuvent être supprimées sans conséquences)
-        # 1 (ᵇ) = Données importantes (leur suppression n'entraîne pas d'effets irréversibles)
-        # 2 (ᶜ) = Données critiques (leur suppression entraîne des effets irréversibles et affectera l'expérience de l'utilisateur)
+        # 0 = Données insignifiantes (peuvent être supprimées sans conséquences)
+        # 1 = Données importantes (leur suppression n'entraîne pas d'effets irréversibles)
+        # 2 = Données critiques (leur suppression entraîne des effets irréversibles et affectera l'expérience de l'utilisateur)
         self.importance_level = importance_level
     
     def __repr__(self):
@@ -283,7 +283,7 @@ def has_user_data(user_id: int, cogs: List[commands.Cog]) -> Dict[str, bool]:
     data = {}
     for cog in cogs:
         if hasattr(cog, 'dataio_list_user_data'):
-            data[cog.qualified_name] = cog.dataio_list_user_data(user_id) != []
+            data[cog.qualified_name] = cog.dataio_list_user_data(user_id) != [] #type: ignore
     return data
 
 def get_user_data(user_id: int, cogs: List[commands.Cog]) -> Dict[str, List[UserDataEntry]]:
@@ -296,7 +296,7 @@ def get_user_data(user_id: int, cogs: List[commands.Cog]) -> Dict[str, List[User
     data = {}
     for cog in cogs:
         if hasattr(cog, 'dataio_list_user_data'):
-            entries = cog.dataio_list_user_data(user_id)
+            entries = cog.dataio_list_user_data(user_id) #type: ignore
             if entries:
                 data[cog.qualified_name] = entries
     return data
@@ -312,7 +312,7 @@ def wipe_user_data(user_id: int, cog: commands.Cog, table_names: List[str]) -> D
     data = {}
     if hasattr(cog, 'dataio_wipe_user_data'):
         for table_name in table_names:
-            data[table_name] = cog.dataio_wipe_user_data(user_id, table_name)
+            data[table_name] = cog.dataio_wipe_user_data(user_id, table_name) #type: ignore
     return data
     
 def extract_user_data(user_id: int, cog: commands.Cog, table_names: List[str]) -> Dict[str, Optional[dict]]:
@@ -326,5 +326,5 @@ def extract_user_data(user_id: int, cog: commands.Cog, table_names: List[str]) -
     data = {}
     if hasattr(cog, 'dataio_extract_user_data'):
         for table_name in table_names:
-            data[table_name] = cog.dataio_extract_user_data(user_id, table_name)
+            data[table_name] = cog.dataio_extract_user_data(user_id, table_name) #type: ignore
     return data
