@@ -567,7 +567,7 @@ class Economy(commands.Cog):
         account.deposit(amount, reason="Allocation quotidienne").save()
         last.value = today
         last.save()
-        await interaction.response.send_message(f"**Allocation quotidienne**\nVous avez reçu {pretty.humanize_number(amount)}{currency} d'aide")
+        await interaction.response.send_message(f"**Allocation quotidienne**\nVous avez reçu {pretty.humanize_number(amount)}{currency} d'aide au titre de l'allocation quotidienne du serveur !")
         
     bankmod = app_commands.Group(name='bankmod', description="Commandes de modération bancaire", guild_only=True, default_permissions=discord.Permissions(manage_messages=True))
     
