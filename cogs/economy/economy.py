@@ -257,7 +257,7 @@ class Account:
         balancevar = self.balance_variation(datetime.now() - timedelta(hours=24))
         em.add_field(name="Var. 24h", value=pretty.codeblock(f'{balancevar:+}', lang='diff'))
         
-        lb = self.cog.data.fetchone(self.member.guild, """SELECT COUNT(*) FROM accounts WHERE balance > ?""", (self.balance,))['COUNT(*)']
+        lb = self.cog.get_guild_leaderboard(self.guild).index(self) + 1
         if not lb:
             lb = 1
         em.add_field(name="Rang", value=pretty.codeblock(f'#{lb}'))
@@ -536,7 +536,7 @@ class Economy(commands.Cog):
             rtrs.save()
             strs.save()
             
-            await interaction.response.send_message(f"**Don effectué !**\nVous avez donné {pretty.humanize_number(amount)}{currency} à {member.mention}" + (f"\n**Raison :** *{reason}*" if reason else ""))
+            await interaction.response.send_message(f"**__Don effectué !__**\nVous avez donné {pretty.humanize_number(amount)}{currency} à {member.mention}" + (f"\n**Raison :** *{reason}*" if reason else ""))
 
     @bank_commands.command(name='allowance')
     async def _bank_allowance(self, interaction: discord.Interaction):
