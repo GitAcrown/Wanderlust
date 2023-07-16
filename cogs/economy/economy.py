@@ -397,17 +397,18 @@ class Economy(commands.Cog):
         return False
     
     def dataio_extract_user_data(self, user_id: int, table_name: str) -> Optional[dict]:
+        data = {}
         if table_name.startswith('accounts:'):
             guild_id = int(table_name.split(':')[1])
             userdata = self.data.fetchone(f'gld_{guild_id}', """SELECT * FROM accounts WHERE member_id = ?""", (user_id,))
             if userdata:
-                return {'balance': userdata['balance']}
-        elif table_name.startswith('transactions:'):
+                data['balance'] = userdata['balance']
+        if table_name.startswith('transactions:'):
             guild_id = int(table_name.split(':')[1])
             trsdata = self.data.fetchall(f'gld_{guild_id}', """SELECT * FROM transactions WHERE member_id = ?""", (user_id,))
             if trsdata:
-                return {'transactions': trsdata}
-        return None
+                data['transactions'] = trsdata
+        return data if data else None
             
     # Settings -----------------------------------------------------------------
     
