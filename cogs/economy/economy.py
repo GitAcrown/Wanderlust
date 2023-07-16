@@ -402,6 +402,11 @@ class Economy(commands.Cog):
             userdata = self.data.fetchone(f'gld_{guild_id}', """SELECT * FROM accounts WHERE member_id = ?""", (user_id,))
             if userdata:
                 return {'balance': userdata['balance']}
+        elif table_name.startswith('transactions:'):
+            guild_id = int(table_name.split(':')[1])
+            trsdata = self.data.fetchall(f'gld_{guild_id}', """SELECT * FROM transactions WHERE member_id = ?""", (user_id,))
+            if trsdata:
+                return {'transactions': trsdata}
         return None
             
     # Settings -----------------------------------------------------------------
