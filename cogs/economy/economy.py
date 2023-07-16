@@ -400,14 +400,14 @@ class Economy(commands.Cog):
         data = {}
         if table_name.startswith('accounts:'):
             guild_id = int(table_name.split(':')[1])
-            userdata = self.data.fetchone(f'gld_{guild_id}', """SELECT * FROM accounts WHERE member_id = ?""", (user_id,))
+            userdata = self.data.fetchone(f'gld_{guild_id}', """SELECT balance FROM accounts WHERE member_id = ?""", (user_id,))
             if userdata:
                 data['balance'] = userdata['balance']
         if table_name.startswith('transactions:'):
             guild_id = int(table_name.split(':')[1])
             trsdata = self.data.fetchall(f'gld_{guild_id}', """SELECT * FROM transactions WHERE member_id = ?""", (user_id,))
             if trsdata:
-                data['transactions'] = trsdata
+                data['transactions'] = [dict(row) for row in trsdata]
         return data if data else None
             
     # Settings -----------------------------------------------------------------
