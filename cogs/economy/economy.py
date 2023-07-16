@@ -379,12 +379,20 @@ class Economy(commands.Cog):
             userdata = self.data.fetchone(guild, """SELECT * FROM accounts WHERE member_id = ?""", (user_id,))
             if userdata:
                 data.append(dataio.UserDataEntry(user_id, f'accounts:{guild.id}', f"Compte bancaire sur '{guild.name}'", importance_level=2))
+            
+            trsdata = self.data.fetchall(guild, """SELECT * FROM transactions WHERE member_id = ?""", (user_id,))
+            if trsdata:
+                data.append(dataio.UserDataEntry(user_id, f'transactions:{guild.id}', f"Transactions sur '{guild.name}'", importance_level=1))
         return data
     
     def dataio_wipe_user_data(self, user_id: int, table_name: str) -> bool:
         if table_name.startswith('accounts:'):
             guild_id = int(table_name.split(':')[1])
             self.data.execute(f'gld_{guild_id}', """DELETE FROM accounts WHERE member_id = ?""", (user_id,))
+            return True
+        elif table_name.startswith('transactions:'):
+            guild_id = int(table_name.split(':')[1])
+            self.data.execute(f'gld_{guild_id}', """DELETE FROM transactions WHERE member_id = ?""", (user_id,))
             return True
         return False
     
