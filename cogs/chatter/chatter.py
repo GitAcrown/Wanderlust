@@ -131,7 +131,7 @@ class CustomChatbot:
         return f'<CustomChatbot id={self.id}>'
     
     def __str__(self) -> str:
-        return self.name.capitalize()
+        return self.name.title()
     
     def __load(self) -> None:
         """Charge les données du profil."""
@@ -419,7 +419,7 @@ class TempChatbot:
         return f'<TempChatbot system_prompt={self.system_prompt}>'
     
     def __str__(self) -> str:
-        return f'W.{self.name.capitalize()}'
+        return f'W.{self.name.title()}'
     
     def _get_context(self, context_size: int) -> List[dict]:
         """Récupère le contexte du chatbot (derniers messages dans la limite de la taille du contexte)."""
