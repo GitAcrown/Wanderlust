@@ -95,10 +95,7 @@ class ChatbotList(discord.ui.View):
     def add_options(self):
         options = []
         for c in self.chatbots:
-            if c == self.chatbots[self.current_page]:
-                options.append(discord.SelectOption(label=c.name, value=str(c.id), default=True))
-            else:
-                options.append(discord.SelectOption(label=c.name, value=str(c.id)))
+            options.append(discord.SelectOption(label=c.name, value=str(c.id)))
         return options
         
     @discord.ui.select(placeholder='Sélectionnez un Chatbot', min_values=1, max_values=1)
