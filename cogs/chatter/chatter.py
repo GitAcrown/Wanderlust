@@ -900,32 +900,33 @@ class Chatter(commands.Cog):
         if len(description) > 200:
             return await interaction.response.send_message("**Erreur** · La description du chatbot ne peut pas dépasser 200 caractères.", ephemeral=True)
         
+        await interaction.response.defer()
         edit = False
         # Vérifier un conflit de nom
         chatbots = self.get_chatbots(guild)
-        if any(c.name == name for c in chatbots):
+        if any(c.name.lower() == name.lower() for c in chatbots):
             confview = ConfirmationView()
-            await interaction.response.send_message(f"**Conflit de nom** · Un chatbot nommé **{name}** existe déjà sur ce serveur.\n**Voulez-vous l'écraser ?**", ephemeral=True, view=confview)
+            await interaction.followup.send(f"**Conflit de nom** · Un chatbot nommé **{name}** existe déjà sur ce serveur.\n**Voulez-vous l'écraser ?**", ephemeral=True, view=confview)
             await confview.wait()
             if confview.value is None or not confview.value:
-                return await interaction.response.send_message("Vous avez annulé la modification du chatbot.", ephemeral=True)
+                return await interaction.followup.send("Vous avez annulé la modification du chatbot.", ephemeral=True)
             edit = True
 
         # Vérifier la taille du prompt d'initialisation
         sysprompt_tokens = len(tiktoken.encoding_for_model(AI_MODEL).encode(system_prompt))
         if sysprompt_tokens >= MAX_CONTEXT_SIZE:
-            return await interaction.response.send_message(f"**Erreur** · Le prompt d'initialisation est trop long ({MAX_CONTEXT_SIZE} tokens maximum).", ephemeral=True)
+            return await interaction.followup.send(f"**Erreur** · Le prompt d'initialisation est trop long ({MAX_CONTEXT_SIZE} tokens maximum).", ephemeral=True)
         
         if sysprompt_tokens >= round(context_size / 2):
             confview = ConfirmationView()
-            await interaction.response.send_message("**Attention requise** · Le prompt d'initialisation représente plus de la moitié du contexte et pourrait grandement restreindre les capacités du Chatbot à garder en mémoire les messages précédent vos interactions.\n**Continuer ?**", ephemeral=True, view=confview)
+            await interaction.followup.send("**Attention requise** · Le prompt d'initialisation représente plus de la moitié du contexte et pourrait grandement restreindre les capacités du Chatbot à garder en mémoire les messages précédent vos interactions.\n**Continuer ?**", ephemeral=True, view=confview)
             await confview.wait()
             if confview.value is None or not confview.value:
-                return await interaction.response.send_message("Vous avez annulé la création/modification du chatbot.", ephemeral=True)
+                return await interaction.followup.send("Vous avez annulé la création/modification du chatbot.", ephemeral=True)
         
         # Créer le chatbot
         if len(chatbots) >= 20:
-            return await interaction.response.send_message("**Erreur** · Vous avez atteint la limite de 20 chatbots par serveur.", ephemeral=True)
+            return await interaction.followup.send("**Erreur** · Vous avez atteint la limite de 20 chatbots par serveur.", ephemeral=True)
         
         query = """INSERT INTO profiles VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
         self.data.execute(guild, query, (
