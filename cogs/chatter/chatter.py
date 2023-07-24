@@ -1002,6 +1002,13 @@ class Chatter(commands.Cog):
         if not isinstance(guild, discord.Guild):
             raise commands.BadArgument('Cette commande ne peut être utilisée que sur un serveur.')
         
+        author = interaction.user
+        comchan = interaction.channel
+        if not isinstance(channel, (discord.TextChannel, discord.Thread)) or not comchan:
+            raise commands.BadArgument('Cette commande ne peut être utilisée que sur un salon textuel ou un thread.')                     
+        if not comchan.permissions_for(author).manage_messages: #type: ignore
+            return await interaction.response.send_message("**Permissions insuffisantes** · Vous devez avoir la permission de gérer les messages pour utiliser cette commande.", ephemeral=True)
+        
         chatbot = self.get_chatbot(guild, chatbot_id)
         if not chatbot:
             return await interaction.response.send_message("**Erreur** · Ce chatbot n'existe pas.", ephemeral=True)
@@ -1036,6 +1043,13 @@ class Chatter(commands.Cog):
         guild = interaction.guild
         if not isinstance(guild, discord.Guild):
             raise commands.BadArgument('Cette commande ne peut être utilisée que sur un serveur.')
+        
+        author = interaction.user
+        comchan = interaction.channel
+        if not isinstance(channel, (discord.TextChannel, discord.Thread)) or not comchan:
+            raise commands.BadArgument('Cette commande ne peut être utilisée que sur un salon textuel ou un thread.')                     
+        if not comchan.permissions_for(author).manage_messages: #type: ignore
+            return await interaction.response.send_message("**Permissions insuffisantes** · Vous devez avoir la permission de gérer les messages pour utiliser cette commande.", ephemeral=True)
         
         chatbot = self.get_chatbot(guild, chatbot_id)
         if not chatbot:
