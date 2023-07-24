@@ -10,6 +10,7 @@ import openai
 import tiktoken
 from discord import app_commands
 from discord.ext import commands
+import unidecode
 
 from common import dataio
 from common.utils import fuzzy
@@ -480,6 +481,9 @@ class AIChatSession:
     
     async def _get_completion(self, content: str, username: str) -> Dict[str, str] | None:
         """Envoie le prompt demandé à ChatGPT ainsi que le contexte du chatbot."""
+        username = unidecode.unidecode(username)
+        username = ''.join([c for c in username if c.isalnum()]).rstrip()
+        
         if isinstance(self.chatbot, CustomChatbot):
             self.chatbot.logs.add_message(time.time(), 'user', content, username)
         else:
@@ -496,6 +500,7 @@ class AIChatSession:
             response = await openai.ChatCompletion.acreate(**payload)
         except Exception as e:
             logger.error(f'Erreur lors de la requête à l\'API OpenAI : {e}')
+            await self.channel.send(f"**Erreur dans la requête à l'API OpenAI** · `{e}`", delete_after=30)
             raise commands.CommandError('Une erreur est survenue lors de la requête à l\'API OpenAI. Veuillez réessayer plus tard.')
 
         if not response or not response['choices']:
