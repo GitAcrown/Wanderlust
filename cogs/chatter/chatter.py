@@ -91,7 +91,7 @@ class ChatbotList(discord.ui.View):
     
     async def on_timeout(self) -> None:
         self.clear_items()
-        await self.initial_interaction.response.edit_message(view=None)
+        await self.initial_interaction.edit_original_response(view=None)
         
     def add_options(self):
         options = []
