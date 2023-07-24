@@ -942,7 +942,7 @@ class Chatter(commands.Cog):
             time.time()
         ))
         chatbot = self.get_chatbot_by_name(guild, name)
-        await interaction.response.send_message(f"Le chatbot **{chatbot}** a été {'modifié' if edit else 'créé'} avec succès.", embed=chatbot.embed)
+        await interaction.followup.send(f"Le chatbot **{chatbot}** a été {'modifié' if edit else 'créé'} avec succès.", embed=chatbot.embed)
         
     @chatbot_group.command(name='delete')
     @app_commands.rename(chatbot_id='chatbot')
