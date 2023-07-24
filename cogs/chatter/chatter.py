@@ -809,11 +809,11 @@ class Chatter(commands.Cog):
         
     @chat_group.command(name='load')
     @app_commands.rename(chatbot_id='chatbot', resume='reprendre')
-    async def _chat_load(self, interaction: discord.Interaction, chatbot_id: int, resume: bool = True, debug: bool = True):
+    async def _chat_load(self, interaction: discord.Interaction, chatbot_id: int, resume: bool = True, debug: bool = False):
         """Charge un chatbot personnalisé sur le salon courant
 
         :param chatbot_id: Identifiant unique du chatbot à charger
-        :param resume: Si True, reprend la discussion à partir de la dernière session
+        :param resume: Si True, reprend la discussion à partir de la dernière session (par défaut)
         :param debug: Si True, affiche des informations supplémentaires à la fin des messages
         """
         channel = interaction.channel
