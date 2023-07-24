@@ -507,10 +507,10 @@ class AIChatSession:
             raise commands.CommandError('Une erreur est survenue lors de la requête à l\'API OpenAI. Veuillez réessayer plus tard.')
 
         text = response['choices'][0]['message']['content']
-        timestamp = response['created']
         is_finished = response['choices'][0]['finish_reason'] == 'stop'
         tokens = response['usage']['total_tokens']
         
+        timestamp = time.time()
         if isinstance(self.chatbot, CustomChatbot):
             self.chatbot.logs.add_message(float(timestamp), 'assistant', text, None)
             self.chatbot.stats.messages += 1
