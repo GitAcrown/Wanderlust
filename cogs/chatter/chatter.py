@@ -747,7 +747,7 @@ class Chatter(commands.Cog):
         
         view = ConfirmationView()
         text = f"Le chatbot **{current_chatbot}** est déjà en cours d'utilisation sur ce salon. Voulez-vous le remplacer par **{chatbot}** ?"
-        await interaction.followup.send(text, view=view)
+        await interaction.followup.send(text, view=view, ephemeral=True)
         await view.wait()
         await interaction.delete_original_response()
         if view.value is None:
@@ -1010,11 +1010,13 @@ class Chatter(commands.Cog):
         
         em = discord.Embed(title="Conflits de noms", description="Il y a des conflits de noms entre les chatbots de ce serveur. **Voulez-vous supprimer les plus anciens ?**", color=discord.Color.red())
         em.add_field(name="Chatbots", value='\n'.join([f"**{c}** ({c.id})" for c in conflicts]))
+        
+        await interaction.response.defer()
         confview = ConfirmationView()
-        await interaction.response.send_message(embed=em, view=confview)
+        await interaction.followup.send(embed=em, view=confview, ephemeral=True)
         await confview.wait()
         if confview.value is None or not confview.value:
-            return await interaction.response.send_message("Vous avez annulé la suppression des chatbots.", ephemeral=True)
+            return await interaction.followup.send("Vous avez annulé la suppression des chatbots.", ephemeral=True)
 
         # Supprimer les chatbots sauf le plus récent
         conflicts = sorted(conflicts, key=lambda c: c.created_at)
@@ -1031,7 +1033,7 @@ class Chatter(commands.Cog):
             query = """DELETE FROM stats WHERE profile_id = ?"""
             self.data.execute(guild, query, (chatbot.id,))
         
-        await interaction.response.send_message(f"**Succès** · {len(conflicts) - 1} chatbots ont été supprimés.")
+        await interaction.followup.send(f"**Succès** · {len(conflicts) - 1} chatbots ont été supprimés.", ephemeral=True)
         
     # Blacklists ---------------------------------------------------------------------------------------------------
     blacklists_group = app_commands.Group(name='blacklist', description="Gestion des blacklists des Chatbots", guild_only=True, parent=chatbot_group, default_permissions=discord.Permissions(manage_messages=True))
