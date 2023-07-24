@@ -928,7 +928,7 @@ class Chatter(commands.Cog):
         if len(chatbots) >= 20:
             return await interaction.followup.send("**Erreur** · Vous avez atteint la limite de 20 chatbots par serveur.", ephemeral=True)
         
-        query = """INSERT INTO profiles VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+        query = """INSERT OR REPLACE INTO profiles VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
         self.data.execute(guild, query, (
             name,
             description,
@@ -991,6 +991,47 @@ class Chatter(commands.Cog):
         
         menu = ChatbotList(chatbots, user=interaction.user)
         await menu.start(interaction)
+        
+    @chatbot_group.command(name='check')
+    async def _chatbot_check(self, interaction: discord.Interaction):
+        """Règle tous les conflits de noms entre les chatbots du serveur"""
+        guild = interaction.guild
+        if not isinstance(guild, discord.Guild):
+            raise commands.BadArgument('Cette commande ne peut être utilisée que sur un serveur.')
+        
+        chatbots = self.get_chatbots(guild)
+        conflicts : List[CustomChatbot] = []
+        for chatbot in chatbots:
+            if any(c.name.lower() == chatbot.name.lower() for c in chatbots if c.id != chatbot.id):
+                conflicts.append(chatbot)
+        
+        if not conflicts:
+            return await interaction.response.send_message("**Aucun conflit** · Il n'y a aucun conflit de nom entre les chatbots de ce serveur.")
+        
+        em = discord.Embed(title="Conflits de noms", description="Il y a des conflits de noms entre les chatbots de ce serveur. **Voulez-vous supprimer les plus anciens ?**", color=discord.Color.red())
+        em.add_field(name="Chatbots", value='\n'.join([f"**{c}** ({c.id})" for c in conflicts]))
+        confview = ConfirmationView()
+        await interaction.response.send_message(embed=em, view=confview)
+        await confview.wait()
+        if confview.value is None or not confview.value:
+            return await interaction.response.send_message("Vous avez annulé la suppression des chatbots.", ephemeral=True)
+
+        # Supprimer les chatbots sauf le plus récent
+        conflicts = sorted(conflicts, key=lambda c: c.created_at)
+        
+        for chatbot in conflicts[:-1]:
+            query = """DELETE FROM profiles WHERE id = ?"""
+            self.data.execute(guild, query, (chatbot.id,))
+            
+            # Supprimer les messages
+            query = """DELETE FROM messages WHERE profile_id = ?"""
+            self.data.execute(guild, query, (chatbot.id,))
+            
+            # Supprimer les stats
+            query = """DELETE FROM stats WHERE profile_id = ?"""
+            self.data.execute(guild, query, (chatbot.id,))
+        
+        await interaction.response.send_message(f"**Succès** · {len(conflicts) - 1} chatbots ont été supprimés.")
         
     # Blacklists ---------------------------------------------------------------------------------------------------
     blacklists_group = app_commands.Group(name='blacklist', description="Gestion des blacklists des Chatbots", guild_only=True, parent=chatbot_group, default_permissions=discord.Permissions(manage_messages=True))
