@@ -143,7 +143,7 @@ class CustomChatbot:
         # Données du profil
         self.name = data['name']
         self.description = data['description']
-        self.avatar_url = data['avatar_url']
+        self.avatar_url = data['avatar_url'] or self._cog._get_default_avatar(self.system_prompt)
         self.system_prompt = data['system_prompt']
         self.temperature = float(data['temperature'])
         self.context_size = int(data['context_size'])
