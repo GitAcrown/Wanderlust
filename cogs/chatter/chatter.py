@@ -3,7 +3,7 @@ import logging
 import random
 import time
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import discord
 import openai
@@ -234,6 +234,15 @@ class ChatbotLogs:
         
     def save(self) -> None:
         """Enregistre les messages du chatbot."""
+        last_save = self.__load_messages()
+        if self.messages == last_save:
+            return
+        
+        if len(self.messages) < len(last_save):
+            # Si des messages ont été supprimés, on nettoie la base de données de la session actuelle pour la remettre au propre
+            query = """DELETE FROM messages WHERE profile_id = ? AND session_id = ?"""
+            self._cog.data.execute(self.guild, query, (self.id, self._session_id))
+
         query = """INSERT OR REPLACE INTO messages VALUES (?, ?, ?, ?, ?, ?)"""
         self._cog.data.executemany(self.guild, query, [(m['timestamp'], self.id, self._session_id, m['role'], m['content'], m['username']) for m in self.messages])
         
@@ -278,6 +287,11 @@ class ChatbotLogs:
                 limit -= 1
                 if limit == 0:
                     break
+        self.save()
+        
+    def remove_last_message(self) -> None:
+        """Supprime le dernier message du chatbot."""
+        self.messages.pop()
         self.save()
         
     # Exploitation
@@ -1078,6 +1092,43 @@ class Chatter(commands.Cog):
             self.data.execute(guild, query, (chatbot.id,))
         
         await interaction.followup.send(f"**Succès** · {len(conflicts) - 1} chatbots ont été supprimés.", ephemeral=True)
+        
+    @devchat_group.command(name='cancel')
+    async def _devchat_cancel(self, interaction: discord.Interaction):
+        """Permet de supprimer du contexte le dernier message envoyé ou reçu par le chatbot sur le salon courant"""
+        guild = interaction.guild
+        if not isinstance(guild, discord.Guild):
+            raise commands.BadArgument('Cette commande ne peut être utilisée que sur un serveur.')
+        
+        channel = interaction.channel
+        if not isinstance(channel, (discord.TextChannel, discord.Thread)):
+            raise commands.BadArgument('Cette commande ne peut être utilisée que sur un salon textuel ou un thread.')
+        
+        if not channel.id in self.sessions:
+            return await interaction.response.send_message("**Erreur** · Il n'y a pas de chatbot attaché à ce salon.", ephemeral=True)
+        
+        chatbot = self.get_session(channel).chatbot
+        if not chatbot.context:
+            return await interaction.response.send_message("**Erreur** · Le contexte est vide.", ephemeral=True)
+        
+        last_message = chatbot.context[-1]
+        # On affiche le message et on demande confirmation
+        em = discord.Embed(title="Supprimer le dernier message du contexte", description="Êtes-vous sûr de vouloir supprimer le dernier message du contexte ? Cette action est __irréversible__.", color=discord.Color.red())
+        em.add_field(name="Message", value=f"```{last_message['content']}```")
+        await interaction.response.defer()
+        confview = ConfirmationView()
+        await interaction.followup.send(embed=em, view=confview, ephemeral=True)
+        await confview.wait()
+        if confview.value is None or not confview.value:
+            return await interaction.followup.send("Vous avez annulé la suppression du message.", ephemeral=True)
+        
+        if isinstance(chatbot, CustomChatbot):
+            chatbot.logs.remove_last_message()
+        else:
+            chatbot._context.pop()
+        
+        await interaction.delete_original_response()
+        await interaction.followup.send(f"**Succès** · Le dernier message du chatbot **{chatbot}** a été supprimé du contexte.", ephemeral=True)
         
     # Blacklists ---------------------------------------------------------------------------------------------------
     blacklists_group = app_commands.Group(name='blacklist', description="Gestion des blacklists des Chatbots", guild_only=True, parent=chatbot_group, default_permissions=discord.Permissions(manage_messages=True))
