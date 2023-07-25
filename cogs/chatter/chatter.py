@@ -998,7 +998,7 @@ class Chatter(commands.Cog):
         await menu.start(interaction)
         
     # Dev ---------------------------------------------------------------------------------------------------
-    devchat_group = app_commands.Group(name='devchat', description="Commandes avancées de gestion des Chatbots", guild_only=True, default_permissions=discord.Permissions(manage_guild=True))
+    devchat_group = app_commands.Group(name='devchat', description="Commandes avancées de gestion des Chatbots", guild_only=True, default_permissions=discord.Permissions(manage_messages=True))
         
     @devchat_group.command(name='rawedit')
     @app_commands.rename(chatbot_id='chatbot', key='clé', value='valeur')
@@ -1024,6 +1024,13 @@ class Chatter(commands.Cog):
             val = int(value)
             if val > MAX_CONTEXT_SIZE:
                 return await interaction.response.send_message(f"**Erreur** · La taille du contexte ne peut pas dépasser {MAX_CONTEXT_SIZE} tokens.", ephemeral=True)
+        elif key == 'temperature':
+            try:
+                val = float(value)
+            except:
+                return await interaction.response.send_message(f"**Erreur** · La température doit être un nombre compris entre 0.1 et 2.0.", ephemeral=True)
+            if val < 0.1 or val > 2.0:
+                return await interaction.response.send_message(f"**Erreur** · La température doit être comprise entre 0.1 et 2.0.", ephemeral=True)
         
         chatbot.__dict__[key] = value
         chatbot.save()
