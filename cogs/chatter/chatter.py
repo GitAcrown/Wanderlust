@@ -18,8 +18,9 @@ from common.utils import fuzzy
 logger = logging.getLogger(f'Wanderlust.{__name__.capitalize()}')
 
 AI_MODEL = 'gpt-3.5-turbo'
-MAX_TOKENS = 500
+MAX_TOKENS = 400
 MAX_CONTEXT_SIZE = 4096
+DEFAULT_CONTEXT_SIZE = 1024
 CHATGPT_COLOR = 0x00A67E
 
 class ConfirmationView(discord.ui.View):
@@ -409,7 +410,7 @@ class TempChatbot:
         self.created_at = time.time()
         
         self.description = f'Chatbot temporaire'
-        self.context_size = 2048
+        self.context_size = DEFAULT_CONTEXT_SIZE
         self.features = []
         self.blacklist = []
         
@@ -510,9 +511,13 @@ class AIChatSession:
         is_finished = response['choices'][0]['finish_reason'] == 'stop'
         tokens = response['usage']['total_tokens']
         
+        if len(text) > 2000:
+            text = text[:1995] + '...'
+            is_finished = False
+        
         timestamp = time.time()
         if isinstance(self.chatbot, CustomChatbot):
-            self.chatbot.logs.add_message(float(timestamp), 'assistant', text, None)
+            self.chatbot.logs.add_message(timestamp, 'assistant', text, None)
             self.chatbot.stats.messages += 1
             self.chatbot.stats.tokens += tokens
             self.chatbot.stats.update_last_use()
@@ -624,7 +629,7 @@ class Chatter(commands.Cog):
                 avatar_url TEXT DEFAULT NULL,
                 system_prompt TEXT,
                 temperature REAL DEFAULT 0.8,
-                context_size INTEGER DEFAULT 2048,
+                context_size INTEGER DEFAULT 1024,
                 features TEXT DEFAULT '',
                 blacklist TEXT DEFAULT '',
                 author_id INTEGER,
@@ -881,7 +886,7 @@ class Chatter(commands.Cog):
                              system_prompt: str,
                              avatar_url: str = '',
                              temperature: app_commands.Range[float, 0.1, 2.0] = 0.8,
-                             context_size: app_commands.Range[int, 0, MAX_CONTEXT_SIZE] = 2048):
+                             context_size: app_commands.Range[int, 0, MAX_CONTEXT_SIZE] = DEFAULT_CONTEXT_SIZE):
         """Créer ou modifier un chatbot personnalisé
         
         :param name: Nom du chatbot
@@ -992,8 +997,40 @@ class Chatter(commands.Cog):
         menu = ChatbotList(chatbots, user=interaction.user)
         await menu.start(interaction)
         
-    @chatbot_group.command(name='check')
-    async def _chatbot_check(self, interaction: discord.Interaction):
+    # Dev ---------------------------------------------------------------------------------------------------
+    devchat_group = app_commands.Group(name='devchat', description="Commandes avancées de gestion des Chatbots", guild_only=True, default_permissions=discord.Permissions(manage_guild=True))
+        
+    @devchat_group.command(name='rawedit')
+    @app_commands.rename(chatbot_id='chatbot', key='clé', value='valeur')
+    async def _devchat_edit(self, interaction: discord.Interaction, chatbot_id: int, key: str, value: str):
+        """Modifie un paramètre d'un chatbot personnalisé sans avoir à le refaire entièrement
+
+        :param chatbot_id: Identifiant unique du chatbot
+        :param key: Clé du paramètre à modifier
+        :param value: Valeur du paramètre à modifier
+        """
+        guild = interaction.guild
+        if not isinstance(guild, discord.Guild):
+            raise commands.BadArgument('Cette commande ne peut être utilisée que sur un serveur.')
+        
+        chatbot = self.get_chatbot(guild, chatbot_id)
+        if not chatbot:
+            return await interaction.response.send_message("**Erreur** · Ce chatbot n'existe pas.", ephemeral=True)
+        
+        if key not in chatbot.__dict__:
+            return await interaction.response.send_message(f"**Erreur** · Le paramètre `{key}` n'existe pas.", ephemeral=True)
+        
+        if key == 'context_size':
+            val = int(value)
+            if val > MAX_CONTEXT_SIZE:
+                return await interaction.response.send_message(f"**Erreur** · La taille du contexte ne peut pas dépasser {MAX_CONTEXT_SIZE} tokens.", ephemeral=True)
+        
+        chatbot.__dict__[key] = value
+        chatbot.save()
+        await interaction.response.send_message(f"**Modification effectuée** · Le paramètre `{key}` a été modifié pour `{value}`.", embed=chatbot.embed, ephemeral=True)
+        
+    @devchat_group.command(name='check')
+    async def _devchat_check(self, interaction: discord.Interaction):
         """Règle tous les conflits de noms entre les chatbots du serveur"""
         guild = interaction.guild
         if not isinstance(guild, discord.Guild):
@@ -1153,6 +1190,7 @@ class Chatter(commands.Cog):
         
     @_chat_load.autocomplete('chatbot_id')
     @_chatbot_delete.autocomplete('chatbot_id')
+    @_devchat_edit.autocomplete('chatbot_id')
     @_blacklist_add.autocomplete('chatbot_id')
     @_blacklist_remove.autocomplete('chatbot_id')
     @_blacklist_list.autocomplete('chatbot_id')
@@ -1162,6 +1200,10 @@ class Chatter(commands.Cog):
         chatbots = self.get_chatbots(interaction.guild)
         r = fuzzy.finder(current, chatbots, key=lambda c: c.name)
         return [app_commands.Choice(name=c.name, value=c.id) for c in r]
+    
+    @_devchat_edit.autocomplete('key')
+    async def chatbot_key_autocomplete(self, interaction: discord.Interaction, current: str):
+        return [app_commands.Choice(name=k, value=k) for k in ['name', 'description', 'avatar_url', 'system_prompt', 'temperature', 'context_size']]
     
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
