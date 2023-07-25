@@ -13,7 +13,7 @@ from discord.ext import commands
 import unidecode
 
 from common import dataio
-from common.utils import fuzzy
+from common.utils import fuzzy, pretty
 
 logger = logging.getLogger(f'Wanderlust.{__name__.capitalize()}')
 
@@ -1114,7 +1114,7 @@ class Chatter(commands.Cog):
         last_message = chatbot.context[-1]
         # On affiche le message et on demande confirmation
         em = discord.Embed(title="Supprimer le dernier message du contexte", description="Êtes-vous sûr de vouloir supprimer le dernier message du contexte ? Cette action est __irréversible__.", color=discord.Color.red())
-        em.add_field(name="Message", value=f"```{last_message['content']}```")
+        em.add_field(name="Message", value=f"```{pretty.troncate_text(last_message['content'], 500)}```")
         await interaction.response.defer()
         confview = ConfirmationView()
         await interaction.followup.send(embed=em, view=confview, ephemeral=True)
