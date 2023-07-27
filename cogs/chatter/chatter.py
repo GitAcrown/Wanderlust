@@ -186,7 +186,7 @@ class CustomChatbot:
         """Récupère un embed représentant le chatbot."""
         em = discord.Embed(title=f'***{str(self)}***', description=f'*{self.description}*', color=CHATGPT_COLOR, timestamp=datetime.fromtimestamp(self.created_at))
         em.set_thumbnail(url=self.avatar_url)
-        em.add_field(name="Prompt d'initialisation", value=f'```{pretty.troncate_text(self.system_prompt, 1020)}```', inline=False)
+        em.add_field(name="Prompt d'initialisation", value=f'```{pretty.troncate_text(self.system_prompt, 1000)}```', inline=False)
         em.add_field(name="Température", value=f'`{self.temperature}`')
         em.add_field(name="Taille du contexte", value=f'`{self.context_size} tokens`')
         if self.features:
@@ -461,7 +461,7 @@ class TempChatbot:
     def _get_embed(self) -> discord.Embed:
         em = discord.Embed(title=f"*{str(self)}*", description=f'*{self.description}*', color=CHATGPT_COLOR, timestamp=datetime.fromtimestamp(self.created_at))
         em.set_thumbnail(url=self.avatar_url)
-        em.add_field(name="Prompt d'initialisation", value=f'```{pretty.troncate_text(self.system_prompt, 1020)}```', inline=False)
+        em.add_field(name="Prompt d'initialisation", value=f'```{pretty.troncate_text(self.system_prompt, 1000)}```', inline=False)
         em.add_field(name="Température", value=f'`{self.temperature}`')
         em.add_field(name="Taille du contexte", value=f'`{self.context_size} tokens`')
         if self._debug:
