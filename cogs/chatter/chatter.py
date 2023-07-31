@@ -211,7 +211,9 @@ class CustomChatbot:
         creator = self.guild.get_member(self.author_id)
         date = datetime.fromtimestamp(self.created_at).strftime('%d/%m/%Y %H:%M')
         if creator:
-            em.add_field(name="Création", value=f'`{date} par {creator}`')
+            em.add_field(name="Création", value=f'`{date}`\nPar {creator.mention}')
+        else:
+            em.add_field(name="Création", value=f'`{date}`\nPar {self.author_id}')
         if self.features:
             em.add_field(name="Fonctions activées", value='\n'.join(f'`{f}`' for f in self.features))
         if self.blacklist:
@@ -950,6 +952,7 @@ class Chatter(commands.Cog):
             confview = ConfirmationView()
             await interaction.followup.send(f"**Conflit de nom** · Un chatbot nommé **{name}** existe déjà sur ce serveur.\n**Voulez-vous l'écraser ?**", ephemeral=True, view=confview)
             await confview.wait()
+            await interaction.delete_original_response()
             if confview.value is None or not confview.value:
                 return await interaction.followup.send("Vous avez annulé la modification du chatbot.", ephemeral=True)
             edit = True
@@ -963,6 +966,7 @@ class Chatter(commands.Cog):
             confview = ConfirmationView()
             await interaction.followup.send(f"**Consommation de crédit potentiellement élevé** · Vous allez créer un chatbot dont le nombre de tokens alloués à la mémoire (contexte) est élevé (>{MAX_CONTEXT_SIZE / 2}) ce qui peut coûter cher en crédits d'API lors de son utilisation.\nIl est déconseillé d'utiliser une taille de contexte aussi élevée à moins que le chatbot ait besoin de garder en mémoire plusieurs dizaines de messages afin de répondre à vos attentes.\n**Vouls-vous continuer sa création ?**", ephemeral=True, view=confview)
             await confview.wait()
+            await interaction.delete_original_response()
             if confview.value is None or not confview.value:
                 return await interaction.followup.send("Vous avez annulé la création/modification du chatbot.", ephemeral=True)
         
@@ -970,6 +974,7 @@ class Chatter(commands.Cog):
             confview = ConfirmationView()
             await interaction.followup.send("**Attention requise** · Le prompt d'initialisation représente plus de la moitié du contexte et pourrait grandement restreindre les capacités du Chatbot à garder en mémoire les messages précédents lors de vos intéractions.\n**Continuer ?**", ephemeral=True, view=confview)
             await confview.wait()
+            await interaction.delete_original_response()
             if confview.value is None or not confview.value:
                 return await interaction.followup.send("Vous avez annulé la création/modification du chatbot.", ephemeral=True)
         
@@ -1011,6 +1016,7 @@ class Chatter(commands.Cog):
         confview = ConfirmationView()
         await interaction.response.send_message(f"**Effacer un chatbot** · Vous êtes sur le point de supprimer le chatbot **{chatbot}**. Cette action est __irréversible__.\n**Voulez-vous continuer ?**", ephemeral=True, view=confview)
         await confview.wait()
+        await interaction.delete_original_response()
         if confview.value is None or not confview.value:
             return await interaction.response.send_message("Vous avez annulé la suppression du chatbot.", ephemeral=True)
         
@@ -1104,6 +1110,7 @@ class Chatter(commands.Cog):
         confview = ConfirmationView()
         await interaction.followup.send(embed=em, view=confview, ephemeral=True)
         await confview.wait()
+        await interaction.delete_original_response()
         if confview.value is None or not confview.value:
             return await interaction.followup.send("Vous avez annulé la suppression des chatbots.", ephemeral=True)
 
@@ -1150,6 +1157,7 @@ class Chatter(commands.Cog):
         confview = ConfirmationView()
         await interaction.followup.send(embed=em, view=confview, ephemeral=True)
         await confview.wait()
+        await interaction.delete_original_response()
         if confview.value is None or not confview.value:
             return await interaction.followup.send("Vous avez annulé la suppression du message.", ephemeral=True)
         
