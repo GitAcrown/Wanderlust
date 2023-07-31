@@ -1,4 +1,4 @@
-from doctest import debug
+from io import BytesIO
 import logging
 import random
 import time
@@ -7,10 +7,12 @@ from typing import Any, Dict, List, Optional
 
 import discord
 import openai
+import requests
 import tiktoken
 from discord import app_commands
 from discord.ext import commands
 import unidecode
+import colorgram
 
 from common import dataio
 from common.utils import fuzzy, pretty
@@ -46,12 +48,12 @@ class ConfirmationView(discord.ui.View):
         
 class ContinueButtonView(discord.ui.View):
     """Ajoute un bouton pour indiquer au Chatbot qu'il doit fournir la suite de sa réponse"""
-    def __init__(self, *, timeout: float | None = 30, author: discord.User | discord.Member | None = None):
+    def __init__(self, *, timeout: float | None = 60, author: discord.User | discord.Member | None = None):
         super().__init__(timeout=timeout)
         self.author = author
         self.value = None
         
-    @discord.ui.button(style=discord.ButtonStyle.blurple, label='Continuer')
+    @discord.ui.button(style=discord.ButtonStyle.gray, label='Continuer', emoji='<:iconContinue:1135604595624783953>')
     async def continue_(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.value = True
         self.stop()
@@ -133,7 +135,10 @@ class CustomChatbot:
         return f'<CustomChatbot id={self.id}>'
     
     def __str__(self) -> str:
-        return self.name.title()
+        name = self.name.title()
+        if self._debug:
+            name += ' [DEBUG]'
+        return name
     
     def __load(self) -> None:
         """Charge les données du profil."""
@@ -182,13 +187,31 @@ class CustomChatbot:
             self.id
         ))
         
+    def _get_avatar_color(self) -> discord.Color:
+        """Récupère la couleur dominante de l'avatar."""
+        url = self.avatar_url
+        with requests.get(url) as r:
+            if r.status_code != 200:
+                raise ValueError(f'Impossible de récupérer l\'avatar du chatbot {self.id}.')
+            elif len(r.content) > 8388608:
+                raise ValueError(f'L\'avatar du chatbot {self.id} est trop lourd.')
+            img = BytesIO(r.content)
+        colors : List[colorgram.Color] = colorgram.extract(img, 1)
+        if not colors:
+            return discord.Color(CHATGPT_COLOR)
+        return discord.Color.from_rgb(*colors[0].rgb)
+        
     def _get_embed(self):
         """Récupère un embed représentant le chatbot."""
-        em = discord.Embed(title=f'***{str(self)}***', description=f'*{self.description}*', color=CHATGPT_COLOR, timestamp=datetime.fromtimestamp(self.created_at))
+        em = discord.Embed(title=f'***{str(self)}***', description=f'*{self.description}*', color=self._get_avatar_color())
         em.set_thumbnail(url=self.avatar_url)
         em.add_field(name="Prompt d'initialisation", value=f'```{pretty.troncate_text(self.system_prompt, 1000)}```', inline=False)
         em.add_field(name="Température", value=f'`{self.temperature}`')
         em.add_field(name="Taille du contexte", value=f'`{self.context_size} tokens`')
+        creator = self.guild.get_member(self.author_id)
+        date = datetime.fromtimestamp(self.created_at).strftime('%d/%m/%Y à %H:%M')
+        if creator:
+            em.add_field(name="Création", value=f'Par {creator.mention} le {date}')
         if self.features:
             em.add_field(name="Fonctions activées", value='\n'.join(f'`{f}`' for f in self.features))
         if self.blacklist:
@@ -197,11 +220,11 @@ class CustomChatbot:
             em.add_field(name="Mode debug", value="Activé")
             
         # Stats
-        text = f"""***Utilisations*** · `{self.stats.uses}`
-        ***Messages*** · `{self.stats.messages}`
-        ***Tokens*** · `{self.stats.tokens}`
-        ***Moy. tokens/message*** · `{self.stats.average_tokens:.2f}`"""
-        em.add_field(name="Statistiques --------", value=text, inline=False)
+        text = f"""- ***Utilisations*** · `{self.stats.uses}`
+        - ***Messages*** · `{self.stats.messages}`
+        - ***Tokens*** · `{self.stats.tokens}`
+        - ***Moy. tokens/réponse*** · `{self.stats.average_tokens:.2f}`"""
+        em.add_field(name="--- Statistiques ----", value=text, inline=False)
         return em
     
     @property
@@ -435,7 +458,10 @@ class TempChatbot:
         return f'<TempChatbot system_prompt={self.system_prompt}>'
     
     def __str__(self) -> str:
-        return f'W.{self.name.title()}'
+        return f'W.{self.name.title()} [DEBUG]' if self._debug else f'W.{self.name.title()}'
+    
+    def _get_avatar_color(self) -> discord.Color:
+        return discord.Color(CHATGPT_COLOR)
     
     def _get_context(self, context_size: int) -> List[dict]:
         """Récupère le contexte du chatbot (derniers messages dans la limite de la taille du contexte)."""
@@ -459,7 +485,7 @@ class TempChatbot:
         return self._get_context(self.context_size)
     
     def _get_embed(self) -> discord.Embed:
-        em = discord.Embed(title=f"*{str(self)}*", description=f'*{self.description}*', color=CHATGPT_COLOR, timestamp=datetime.fromtimestamp(self.created_at))
+        em = discord.Embed(title=f"*{str(self)}*", description=f'*{self.description}*', color=self._get_avatar_color(), timestamp=datetime.fromtimestamp(self.created_at))
         em.set_thumbnail(url=self.avatar_url)
         em.add_field(name="Prompt d'initialisation", value=f'```{pretty.troncate_text(self.system_prompt, 1000)}```', inline=False)
         em.add_field(name="Température", value=f'`{self.temperature}`')
@@ -565,7 +591,7 @@ class AIChatSession:
         if send_continue:
             content = 'Suite'
             async with channel.typing():
-                comp = await self._get_completion(content, message.author.name)
+                comp = await self._get_completion(content, message.author.display_name)
         else:
             # Si le message est une réponse à un message du chatbot
             if message.reference and message.reference.resolved:
@@ -576,12 +602,12 @@ class AIChatSession:
                     return False
                 
                 async with channel.typing():
-                    comp = await self._get_completion(content, message.author.name)
+                    comp = await self._get_completion(content, message.author.display_name)
         
             # Si le bot est mentionné
             if botuser.mentioned_in(message):
                 async with channel.typing():
-                    comp = await self._get_completion(content, message.author.name)
+                    comp = await self._get_completion(content, message.author.display_name)
             
         if comp:
             text = comp['content']
@@ -936,9 +962,16 @@ class Chatter(commands.Cog):
         if sysprompt_tokens >= MAX_CONTEXT_SIZE:
             return await interaction.followup.send(f"**Erreur** · Le prompt d'initialisation est trop long ({MAX_CONTEXT_SIZE} tokens maximum).", ephemeral=True)
         
+        if context_size > MAX_CONTEXT_SIZE / 2:
+            confview = ConfirmationView()
+            await interaction.followup.send(f"**Consommation de crédit potentiellement élevé** · Vous allez créer un chatbot dont le nombre de tokens alloués à la mémoire (contexte) est élevé (>{MAX_CONTEXT_SIZE / 2}) ce qui peut coûter cher en crédits d'API lors de son utilisation.\nIl est déconseillé d'utiliser une taille de contexte aussi élevée à moins que le chatbot ait besoin de garder en mémoire plusieurs dizaines de messages afin de répondre à vos attentes.\n**Vouls-vous continuer sa création ?**", ephemeral=True, view=confview)
+            await confview.wait()
+            if confview.value is None or not confview.value:
+                return await interaction.followup.send("Vous avez annulé la création/modification du chatbot.", ephemeral=True)
+        
         if sysprompt_tokens >= round(context_size / 2):
             confview = ConfirmationView()
-            await interaction.followup.send("**Attention requise** · Le prompt d'initialisation représente plus de la moitié du contexte et pourrait grandement restreindre les capacités du Chatbot à garder en mémoire les messages précédent vos interactions.\n**Continuer ?**", ephemeral=True, view=confview)
+            await interaction.followup.send("**Attention requise** · Le prompt d'initialisation représente plus de la moitié du contexte et pourrait grandement restreindre les capacités du Chatbot à garder en mémoire les messages précédents lors de vos intéractions.\n**Continuer ?**", ephemeral=True, view=confview)
             await confview.wait()
             if confview.value is None or not confview.value:
                 return await interaction.followup.send("Vous avez annulé la création/modification du chatbot.", ephemeral=True)
