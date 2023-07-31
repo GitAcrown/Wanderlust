@@ -950,9 +950,9 @@ class Chatter(commands.Cog):
         chatbots = self.get_chatbots(guild)
         if any(c.name.lower() == name.lower() for c in chatbots):
             confview = ConfirmationView()
-            await interaction.followup.send(f"**Conflit de nom** · Un chatbot nommé **{name}** existe déjà sur ce serveur.\n**Voulez-vous l'écraser ?**", ephemeral=True, view=confview)
+            msg = await interaction.followup.send(f"**Conflit de nom** · Un chatbot nommé **{name}** existe déjà sur ce serveur.\n**Voulez-vous l'écraser ?**", ephemeral=True, view=confview, wait=True)
             await confview.wait()
-            await interaction.delete_original_response()
+            await msg.edit(content=f"**Conflit de nom** · Le chatbot **{name}** sera écrasé.", view=None)
             if confview.value is None or not confview.value:
                 return await interaction.followup.send("Vous avez annulé la modification du chatbot.", ephemeral=True)
             edit = True
@@ -964,17 +964,17 @@ class Chatter(commands.Cog):
         
         if context_size > MAX_CONTEXT_SIZE / 2:
             confview = ConfirmationView()
-            await interaction.followup.send(f"**Consommation de crédit potentiellement élevé** · Vous allez créer un chatbot dont le nombre de tokens alloués à la mémoire (contexte) est élevé (>{MAX_CONTEXT_SIZE / 2}) ce qui peut coûter cher en crédits d'API lors de son utilisation.\nIl est déconseillé d'utiliser une taille de contexte aussi élevée à moins que le chatbot ait besoin de garder en mémoire plusieurs dizaines de messages afin de répondre à vos attentes.\n**Vouls-vous continuer sa création ?**", ephemeral=True, view=confview)
+            msg = await interaction.followup.send(f"**Consommation de crédit potentiellement élevé** · Vous allez créer un chatbot dont le nombre de tokens alloués à la mémoire (contexte) est élevé (>{MAX_CONTEXT_SIZE / 2}) ce qui peut coûter cher en crédits d'API lors de son utilisation.\nIl est déconseillé d'utiliser une taille de contexte aussi élevée à moins que le chatbot ait besoin de garder en mémoire plusieurs dizaines de messages afin de répondre à vos attentes.\n**Vouls-vous continuer sa création ?**", ephemeral=True, view=confview, wait=True)
             await confview.wait()
-            await interaction.delete_original_response()
+            await msg.edit(content=f"**Consommation de crédit potentiellement élevé** · La taille du contexte spécifiée sera utilisée.", view=None)
             if confview.value is None or not confview.value:
                 return await interaction.followup.send("Vous avez annulé la création/modification du chatbot.", ephemeral=True)
         
         if sysprompt_tokens >= round(context_size / 2):
             confview = ConfirmationView()
-            await interaction.followup.send("**Attention requise** · Le prompt d'initialisation représente plus de la moitié du contexte et pourrait grandement restreindre les capacités du Chatbot à garder en mémoire les messages précédents lors de vos intéractions.\n**Continuer ?**", ephemeral=True, view=confview)
+            msg = await interaction.followup.send("**Prompt de grande taille** · Le prompt d'initialisation représente plus de la moitié du contexte et pourrait grandement restreindre les capacités du Chatbot à garder en mémoire les messages précédents lors de vos interactions.\n**Continuer ?**", ephemeral=True, view=confview, wait=True)
             await confview.wait()
-            await interaction.delete_original_response()
+            await msg.edit(content=f"**Prompt de grande taille** · Le prompt spécifié sera utilisé.", view=None)
             if confview.value is None or not confview.value:
                 return await interaction.followup.send("Vous avez annulé la création/modification du chatbot.", ephemeral=True)
         
