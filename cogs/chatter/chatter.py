@@ -220,10 +220,7 @@ class CustomChatbot:
             em.add_field(name="Mode debug", value="Activé")
             
         # Stats
-        text = f"""- ***Utilisations*** · `{self.stats.uses}`
-        - ***Messages*** · `{self.stats.messages}`
-        - ***Tokens*** · `{self.stats.tokens}`
-        - ***Moy. tokens/réponse*** · `{self.stats.average_tokens:.2f}`"""
+        text = f"- ***Utilisations*** · `{self.stats.uses}`\n- ***Messages*** · `{self.stats.messages}`\n- ***Tokens*** · `{self.stats.tokens}`\n- ***Moy. tokens/réponse*** · `{self.stats.average_tokens:.2f}`"
         em.add_field(name="--- Statistiques ----", value=text, inline=False)
         return em
     
