@@ -95,7 +95,12 @@ class ChatbotList(discord.ui.View):
     
     async def on_timeout(self) -> None:
         self.clear_items()
-        await self.initial_interaction.edit_original_response(view=None)
+        if self.initial_interaction.message:
+            em = self.initial_interaction.message.embeds[0]
+            em.set_footer(text=None)
+            await self.initial_interaction.message.edit(embed=em, view=None)
+        else:
+            await self.initial_interaction.edit_original_response(view=None)
         
     def add_options(self):
         options = []
@@ -203,7 +208,7 @@ class CustomChatbot:
         
     def _get_embed(self):
         """Récupère un embed représentant le chatbot."""
-        em = discord.Embed(title=f'***{str(self)}***', description=f'*{self.description}*', color=self._get_avatar_color())
+        em = discord.Embed(title=f'***{str(self)}***', description=f'*{self.description}*', color=self._get_avatar_color() if not self.id in self._cog.chatbots_colors else discord.Color(self._cog.chatbots_colors[self.id]))
         em.set_thumbnail(url=self.avatar_url)
         em.add_field(name="Prompt d'initialisation", value=f'```{pretty.troncate_text(self.system_prompt, 1000)}```', inline=False)
         em.add_field(name="Température", value=f'`{self.temperature}`')
@@ -211,9 +216,9 @@ class CustomChatbot:
         creator = self.guild.get_member(self.author_id)
         date = datetime.fromtimestamp(self.created_at).strftime('%d/%m/%Y %H:%M')
         if creator:
-            em.add_field(name="Création", value=f'`{date}`\nPar {creator.mention}')
+            em.add_field(name="Création", value=f'`{date}`\npar {creator.mention}')
         else:
-            em.add_field(name="Création", value=f'`{date}`\nPar {self.author_id}')
+            em.add_field(name="Création", value=f'`{date}`\npar {self.author_id}')
         if self.features:
             em.add_field(name="Fonctions activées", value='\n'.join(f'`{f}`' for f in self.features))
         if self.blacklist:
@@ -647,6 +652,7 @@ class Chatter(commands.Cog):
         openai.api_key = self.bot.config['OPENAI_APIKEY'] #type: ignore
         
         self.sessions = {}
+        self.chatbots_colors = {}
         
     @commands.Cog.listener()
     async def on_ready(self):
@@ -751,7 +757,10 @@ class Chatter(commands.Cog):
     
     def get_chatbot(self, guild: discord.Guild, profile_id: int, *, resume: bool = True, debug: bool = False) -> CustomChatbot:
         """Récupère un profil d'IA."""
-        return CustomChatbot(self, guild, profile_id, resume=resume, debug=debug)
+        # On met à jour la couleur du chatbot
+        chatbot = CustomChatbot(self, guild, profile_id, resume=resume, debug=debug)
+        self.chatbots_colors[chatbot] = chatbot._get_avatar_color()
+        return chatbot
     
     def get_chatbot_by_name(self, guild: discord.Guild, name: str) -> CustomChatbot:
         """Récupère un profil d'IA par son nom."""
