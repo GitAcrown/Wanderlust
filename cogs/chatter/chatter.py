@@ -1059,11 +1059,11 @@ class Chatter(commands.Cog):
         if not isinstance(guild, discord.Guild):
             raise commands.BadArgument('Cette commande ne peut être utilisée que sur un serveur.')
         
+        await interaction.response.defer()
         chatbots = self.get_chatbots(guild)
         if not chatbots:
-            return await interaction.response.send_message("**Aucun chatbot** · Il n'y a aucun chatbot personnalisé sur ce serveur.")
+            return await interaction.followup.send("**Aucun chatbot** · Il n'y a aucun chatbot personnalisé sur ce serveur.")
         
-        await interaction.response.defer()
         menu = ChatbotList(chatbots, user=interaction.user)
         await menu.start(interaction)
         
