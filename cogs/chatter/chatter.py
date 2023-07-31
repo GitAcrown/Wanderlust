@@ -98,7 +98,7 @@ class ChatbotList(discord.ui.View):
         if self.initial_interaction.message:
             em = self.initial_interaction.message.embeds[0]
             em.set_footer(text=None)
-            await self.initial_interaction.message.edit(embed=em, view=None)
+            await self.initial_interaction.edit_original_response(embed=em, view=None)
         else:
             await self.initial_interaction.edit_original_response(view=None)
         
@@ -110,12 +110,13 @@ class ChatbotList(discord.ui.View):
         
     @discord.ui.select(placeholder='Sélectionnez un Chatbot', min_values=1, max_values=1)
     async def select_chatbot(self, interaction: discord.Interaction, select: discord.ui.Select):
+        await interaction.response.defer()
         chatbot_id = int(select.values[0])
         for i, c in enumerate(self.chatbots):
             if c.id == chatbot_id:
                 self.current_page = i
                 break
-        await self.initial_interaction.edit_original_response(embed=self._get_page(), view=self)
+        await self.initial_interaction.edit_original_response(embed=self._get_page())
 
 class CustomChatbot:
     def __init__(self, cog: 'Chatter', guild: discord.Guild, profile_id: int, *, resume: bool = True, debug: bool = False):
