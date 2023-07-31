@@ -85,7 +85,7 @@ class ChatbotList(discord.ui.View):
         return em
         
     async def start(self, interaction: discord.Interaction) -> None:
-        await interaction.response.send_message(embed=self._get_page(), view=self)
+        await interaction.followup.send(embed=self._get_page(), view=self)
         self.initial_interaction = interaction
             
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
@@ -110,7 +110,7 @@ class ChatbotList(discord.ui.View):
             if c.id == chatbot_id:
                 self.current_page = i
                 break
-        await interaction.response.edit_message(embed=self._get_page(), view=self)
+        await self.initial_interaction.edit_original_response(embed=self._get_page(), view=self)
 
 class CustomChatbot:
     def __init__(self, cog: 'Chatter', guild: discord.Guild, profile_id: int, *, resume: bool = True, debug: bool = False):
@@ -209,9 +209,9 @@ class CustomChatbot:
         em.add_field(name="Température", value=f'`{self.temperature}`')
         em.add_field(name="Taille du contexte", value=f'`{self.context_size} tokens`')
         creator = self.guild.get_member(self.author_id)
-        date = datetime.fromtimestamp(self.created_at).strftime('%d/%m/%Y à %H:%M')
+        date = datetime.fromtimestamp(self.created_at).strftime('%d/%m/%Y %H:%M')
         if creator:
-            em.add_field(name="Création", value=f'Par {creator.mention} le {date}')
+            em.add_field(name="Création", value=f'`{date} par {creator}`')
         if self.features:
             em.add_field(name="Fonctions activées", value='\n'.join(f'`{f}`' for f in self.features))
         if self.blacklist:
@@ -1038,6 +1038,7 @@ class Chatter(commands.Cog):
         if not chatbots:
             return await interaction.response.send_message("**Aucun chatbot** · Il n'y a aucun chatbot personnalisé sur ce serveur.")
         
+        await interaction.response.defer()
         menu = ChatbotList(chatbots, user=interaction.user)
         await menu.start(interaction)
         
