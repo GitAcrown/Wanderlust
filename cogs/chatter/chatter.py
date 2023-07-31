@@ -3,7 +3,7 @@ import logging
 import random
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import discord
 import openai
@@ -11,8 +11,8 @@ import requests
 import tiktoken
 from discord import app_commands
 from discord.ext import commands
+from PIL import Image, ImageDraw
 import unidecode
-import colorgram
 
 from common import dataio
 from common.utils import fuzzy, pretty
@@ -194,6 +194,14 @@ class CustomChatbot:
         
     def _get_avatar_color(self) -> discord.Color:
         """Récupère la couleur dominante de l'avatar."""
+        
+        def get_dominant_color(pil_img: Image.Image):
+            img = pil_img.copy()
+            img = img.convert("RGBA")
+            img = img.resize((1, 1), resample=0)
+            dominant_color = img.getpixel((0, 0))
+            return dominant_color
+        
         url = self.avatar_url
         with requests.get(url) as r:
             if r.status_code != 200:
@@ -201,10 +209,12 @@ class CustomChatbot:
             elif len(r.content) > 8388608:
                 raise ValueError(f'L\'avatar du chatbot {self.id} est trop lourd.')
             img = BytesIO(r.content)
-        colors : List[colorgram.Color] = colorgram.extract(img, 1)
-        if not colors:
+        
+        image = Image.open(img)
+        color = get_dominant_color(image)
+        if not color:
             return discord.Color(CHATGPT_COLOR)
-        return discord.Color.from_rgb(*colors[0].rgb)
+        return discord.Color.from_rgb(*color[:3])
         
     def _get_embed(self):
         """Récupère un embed représentant le chatbot."""
