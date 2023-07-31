@@ -219,8 +219,7 @@ class CustomChatbot:
         
     def _get_embed(self):
         """Récupère un embed représentant le chatbot."""
-        cb_color = self._cog._get_chatbot_color(self)
-        em = discord.Embed(title=f'***{str(self)}***', description=f'*{self.description}*', color=cb_color)
+        em = discord.Embed(title=f'***{str(self)}***', description=f'*{self.description}*', color=CHATGPT_COLOR)
         em.set_thumbnail(url=self.avatar_url)
         em.add_field(name="Prompt d'initialisation", value=f'```{pretty.troncate_text(self.system_prompt, 1000)}```', inline=False)
         em.add_field(name="Température", value=f'`{self.temperature}`')
@@ -501,7 +500,7 @@ class TempChatbot:
         return self._get_context(self.context_size)
     
     def _get_embed(self) -> discord.Embed:
-        em = discord.Embed(title=f"*{str(self)}*", description=f'*{self.description}*', color=self._get_avatar_color(), timestamp=datetime.fromtimestamp(self.created_at))
+        em = discord.Embed(title=f"*{str(self)}*", description=f'*{self.description}*', color=CHATGPT_COLOR, timestamp=datetime.fromtimestamp(self.created_at))
         em.set_thumbnail(url=self.avatar_url)
         em.add_field(name="Prompt d'initialisation", value=f'```{pretty.troncate_text(self.system_prompt, 1000)}```', inline=False)
         em.add_field(name="Température", value=f'`{self.temperature}`')
@@ -664,7 +663,6 @@ class Chatter(commands.Cog):
         openai.api_key = self.bot.config['OPENAI_APIKEY'] #type: ignore
         
         self.sessions = {}
-        self.chatbots_colors = {}
         
     @commands.Cog.listener()
     async def on_ready(self):
@@ -764,24 +762,14 @@ class Chatter(commands.Cog):
         if not self.bot.user:
             return ''
         return self.bot.user.display_avatar.url
-    
-    def _cache_chatbot_color(self, chatbot: CustomChatbot) -> None:
-        """Met à jour la couleur d'un chatbot."""
-        self.chatbots_colors[chatbot] = chatbot._get_avatar_color()
-        
-    def _get_chatbot_color(self, chatbot: CustomChatbot) -> discord.Color:
-        """Récupère la couleur d'un chatbot."""
-        return self.chatbots_colors[chatbot] if chatbot in self.chatbots_colors else chatbot._get_avatar_color()
+
     
     # Chatbots customs -----------------------------------------------------------------------------------------------
     
     def get_chatbot(self, guild: discord.Guild, profile_id: int, *, resume: bool = True, debug: bool = False) -> CustomChatbot:
         """Récupère un profil d'IA."""
         # On met à jour la couleur du chatbot
-        chatbot = CustomChatbot(self, guild, profile_id, resume=resume, debug=debug)
-        if not chatbot in self.chatbots_colors:
-            self.chatbots_colors[chatbot] = chatbot._get_avatar_color()
-        return chatbot
+        return CustomChatbot(self, guild, profile_id, resume=resume, debug=debug)
     
     def get_chatbot_by_name(self, guild: discord.Guild, name: str) -> CustomChatbot:
         """Récupère un profil d'IA par son nom."""
