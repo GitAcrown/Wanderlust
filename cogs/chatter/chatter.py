@@ -23,7 +23,7 @@ AI_MODEL = 'gpt-3.5-turbo'
 MAX_TOKENS = 400
 MAX_CONTEXT_SIZE = 4096
 DEFAULT_CONTEXT_SIZE = 1024
-CHATGPT_COLOR = 0x00A67E
+EMBED_DEFAULT_COLOR = 0x2b2d31
 
 class ConfirmationView(discord.ui.View):
     """Ajoute un bouton de confirmation et d'annulation à un message"""
@@ -214,12 +214,12 @@ class CustomChatbot:
         image = Image.open(img)
         color = get_dominant_color(image)
         if not color:
-            return discord.Color(CHATGPT_COLOR)
+            return discord.Color(EMBED_DEFAULT_COLOR)
         return discord.Color.from_rgb(*color[:3])
         
     def _get_embed(self):
         """Récupère un embed représentant le chatbot."""
-        em = discord.Embed(title=f'***{str(self)}***', description=f'*{self.description}*', color=CHATGPT_COLOR)
+        em = discord.Embed(title=f'***{str(self)}***', description=f'*{self.description}*', color=EMBED_DEFAULT_COLOR)
         em.set_thumbnail(url=self.avatar_url)
         em.add_field(name="Prompt d'initialisation", value=f'```{pretty.troncate_text(self.system_prompt, 1000)}```', inline=False)
         em.add_field(name="Température", value=f'`{self.temperature}`')
@@ -476,7 +476,7 @@ class TempChatbot:
         return f'W.{self.name.title()} [DEBUG]' if self._debug else f'W.{self.name.title()}'
     
     def _get_avatar_color(self) -> discord.Color:
-        return discord.Color(CHATGPT_COLOR)
+        return discord.Color(EMBED_DEFAULT_COLOR)
     
     def _get_context(self, context_size: int) -> List[dict]:
         """Récupère le contexte du chatbot (derniers messages dans la limite de la taille du contexte)."""
@@ -500,7 +500,7 @@ class TempChatbot:
         return self._get_context(self.context_size)
     
     def _get_embed(self) -> discord.Embed:
-        em = discord.Embed(title=f"*{str(self)}*", description=f'*{self.description}*', color=CHATGPT_COLOR, timestamp=datetime.fromtimestamp(self.created_at))
+        em = discord.Embed(title=f"*{str(self)}*", description=f'*{self.description}*', color=EMBED_DEFAULT_COLOR, timestamp=datetime.fromtimestamp(self.created_at))
         em.set_thumbnail(url=self.avatar_url)
         em.add_field(name="Prompt d'initialisation", value=f'```{pretty.troncate_text(self.system_prompt, 1000)}```', inline=False)
         em.add_field(name="Température", value=f'`{self.temperature}`')
@@ -806,6 +806,9 @@ class Chatter(commands.Cog):
         current_chatbot = self.get_session(channel).chatbot
         if isinstance(current_chatbot, TempChatbot):
             return True # On ne demande pas pour les chatbots temporaires
+        
+        if current_chatbot == chatbot:
+            return True # On ne demande pas si c'est le même chatbot
         
         view = ConfirmationView()
         text = f"Le chatbot **{current_chatbot}** est déjà en cours d'utilisation sur ce salon. Voulez-vous le remplacer par **{chatbot}** ?"
@@ -1299,7 +1302,7 @@ class Chatter(commands.Cog):
         if not blacklist:
             return await interaction.response.send_message(f"**Blacklist vide** · Il n'y a aucun utilisateur ou salon blacklisté pour le chatbot **{chatbot}**.")
         
-        em = discord.Embed(title=f"Blacklist du chatbot **{chatbot}**", color=CHATGPT_COLOR)
+        em = discord.Embed(title=f"Blacklist du chatbot **{chatbot}**", color=EMBED_DEFAULT_COLOR)
         em.description = '\n'.join(f'• {c.mention}' for c in blacklist)
         await interaction.response.send_message(embed=em)
         
