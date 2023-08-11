@@ -451,10 +451,11 @@ class ChatbotStats:
         
 class TempChatbot:
     """Représente un chatbot temporaire."""
-    def __init__(self, cog: 'Chatter', system_prompt: str, temperature: float, *, author_id: int | None = None, debug: bool = False):
+    def __init__(self, cog: 'Chatter', system_prompt: str, temperature: float, context_size: int, *, author_id: int | None = None, debug: bool = False):
         self._cog = cog
         self.system_prompt = system_prompt
         self.temperature = temperature
+        self.context_size = context_size
         
         self.name = cog._get_default_name(system_prompt)
         self.avatar_url = cog._get_default_avatar(system_prompt)
@@ -462,7 +463,6 @@ class TempChatbot:
         self.created_at = time.time()
         
         self.description = f'Chatbot temporaire'
-        self.context_size = DEFAULT_CONTEXT_SIZE
         self.features = []
         self.blacklist = []
         
@@ -826,7 +826,7 @@ class Chatter(commands.Cog):
     
     @chat_group.command(name='temp')
     @app_commands.rename(system_prompt='initialisation', temperature='température')
-    async def _chat_temp(self, interaction: discord.Interaction, system_prompt: str, temperature: app_commands.Range[float, 0.1, 2.0] = 0.8, debug: bool = False):
+    async def _chat_temp(self, interaction: discord.Interaction, system_prompt: str, temperature: app_commands.Range[float, 0.1, 2.0] = 0.8, context_size: app_commands.Range[int, 1, MAX_CONTEXT_SIZE] = DEFAULT_CONTEXT_SIZE, debug: bool = False):
         """Créer un chatbot temporaire pour discuter sur le salon courant
         
         :param system_prompt: Prompt d'initialisation de l'IA
@@ -838,9 +838,9 @@ class Chatter(commands.Cog):
             raise commands.BadArgument('Cette commande ne peut être utilisée que sur un salon textuel ou un thread.')
 
         await interaction.response.defer()
-        chatbot = TempChatbot(self, system_prompt, temperature, author_id=interaction.user.id, debug=debug)
+        chatbot = TempChatbot(self, system_prompt, temperature, context_size, author_id=interaction.user.id, debug=debug)
         if channel.id in self.sessions:
-            if not await self.ask_replace_session(interaction, channel, TempChatbot(self, system_prompt, temperature, author_id=interaction.user.id)):
+            if not await self.ask_replace_session(interaction, channel, TempChatbot(self, system_prompt, temperature, context_size, author_id=interaction.user.id)):
                 return await interaction.followup.send("Vous avez annulé la création du chatbot temporaire.", ephemeral=True)
             
         self.set_session(channel, chatbot)
@@ -946,7 +946,7 @@ class Chatter(commands.Cog):
                              system_prompt: str,
                              avatar_url: str = '',
                              temperature: app_commands.Range[float, 0.1, 2.0] = 0.8,
-                             context_size: app_commands.Range[int, 0, MAX_CONTEXT_SIZE] = DEFAULT_CONTEXT_SIZE):
+                             context_size: app_commands.Range[int, 1, MAX_CONTEXT_SIZE] = DEFAULT_CONTEXT_SIZE):
         """Créer ou modifier un chatbot personnalisé
         
         :param name: Nom du chatbot
