@@ -831,6 +831,7 @@ class Chatter(commands.Cog):
         
         :param system_prompt: Prompt d'initialisation de l'IA
         :param temperature: Température de l'IA (entre 0.1 et 2.0)
+        :param context_size: Taille du contexte de l'IA en tokens (par défaut 1024)
         :param debug: Si True, affiche des informations supplémentaires à la fin des messages
         """
         channel = interaction.channel
