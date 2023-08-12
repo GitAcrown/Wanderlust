@@ -1,3 +1,4 @@
+import asyncio
 from calendar import c
 from io import BytesIO
 import logging
@@ -906,6 +907,8 @@ class Chatter(commands.Cog):
         chatbot.stats.uses += 1
         self.set_session(channel, chatbot)
         await interaction.followup.send(f"Le chatbot **{chatbot}** a été chargé sur ce salon.", embed=chatbot.embed)
+        await asyncio.sleep(60)
+        await interaction.edit_original_response(embed=None)
         
     @chat_group.command(name='current')
     async def _chat_current(self, interaction: discord.Interaction):
