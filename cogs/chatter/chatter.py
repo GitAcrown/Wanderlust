@@ -586,7 +586,7 @@ class AIChatSession:
             'stop': is_finished
         }
 
-    async def handle_message(self, message: discord.Message, *, send_continue: bool = False):
+    async def handle_message(self, message: discord.Message, *, send_continue: bool = False, override_mention: bool = False):
         """Gère un message envoyé sur le salon."""
         botuser = self._cog.bot.user
         channel = message.channel
@@ -608,7 +608,9 @@ class AIChatSession:
             content = 'Suite'
             async with channel.typing():
                 comp = await self._get_completion(content, message.author.display_name)
-        else:
+        elif botuser.mentioned_in(message) or override_mention:
+            async with channel.typing():
+                comp = await self._get_completion(content, message.author.display_name)
             # # Si le message est une réponse à un message du chatbot
             # if message.reference and message.reference.resolved:
             #     reply = message.reference.resolved
@@ -621,9 +623,6 @@ class AIChatSession:
             #         comp = await self._get_completion(content, message.author.display_name)
         
             # Si le bot est mentionné
-            if botuser.mentioned_in(message):
-                async with channel.typing():
-                    comp = await self._get_completion(content, message.author.display_name)
             
         if comp:
             text = comp['content']
@@ -937,7 +936,7 @@ class Chatter(commands.Cog):
             return await interaction.response.send_message("**Impossible** · Vous ne pouvez pas utiliser ce message comme prompt car vous avez été blacklisté par le chatbot ou ce salon n'est pas autorisé à utiliser ce chatbot.", ephemeral=True)
         
         await interaction.response.send_message(f"**Veuillez patienter** · Le message de {message.author.display_name} a été envoyé au chatbot attaché au salon.", ephemeral=True, delete_after=10)
-        await session.handle_message(message)
+        await session.handle_message(message, override_mention=True)
         
     # TODO: Ajouter une fois que les crédits seront implémentés et obligatoires
     
