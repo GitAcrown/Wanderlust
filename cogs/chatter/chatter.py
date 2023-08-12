@@ -1354,9 +1354,9 @@ class Chatter(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         """Répond aux messages des utilisateurs avec un chatbot IA si on le mentionne, lui répond, ou si on est sur un thread avec le mode de réponse automatique activé."""
+        if not self.bot.user:
+            return
         if message.channel.id not in self.sessions:
-            if not self.bot.user:
-                return
             if message.channel.type not in (discord.ChannelType.text, discord.ChannelType.private_thread, discord.ChannelType.public_thread):
                 return
             if not self.bot.user.mentioned_in(message):
