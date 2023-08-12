@@ -1351,7 +1351,7 @@ class Chatter(commands.Cog):
     async def on_message(self, message: discord.Message):
         """Répond aux messages des utilisateurs avec un chatbot IA si on le mentionne, lui répond, ou si on est sur un thread avec le mode de réponse automatique activé."""
         if message.channel.id not in self.sessions:
-            return
+            return await message.reply("**Aucun chatbot** · Il n'y a pas de chatbot actuellement attaché à ce salon.\nUtilisez </chat load:1105603534310879345> ou </chat temp:1105603534310879345> pour en attacher un.", delete_after=10)
         
         session = self.get_session(message.channel) # type: ignore
         if session.check_blacklist(message.author.id) or session.check_blacklist(message.channel.id):
