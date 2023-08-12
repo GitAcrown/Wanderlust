@@ -927,9 +927,10 @@ class Chatter(commands.Cog):
         if not isinstance(channel, (discord.TextChannel, discord.Thread)):
             return await interaction.response.send_message("**Impossible** · Cette fonctionnalité n'est disponible que sur les salons textuels et les threads.")
 
-        session = self.get_session(channel)
-        if session is None:
+        if channel.id not in self.sessions:
             return await interaction.response.send_message("**Aucun chatbot n'est chargé** · Il n'y a pas de chatbot actuellement attaché à ce salon.")
+        
+        session = self.get_session(channel)
         
         ctx_user = interaction.user
         if session.check_blacklist(ctx_user.id) or session.check_blacklist(message.channel.id):
@@ -1357,7 +1358,7 @@ class Chatter(commands.Cog):
                 return
             if not self.bot.user.mentioned_in(message):
                 return
-            return await message.reply("**Aucun chatbot** · Il n'y a pas de chatbot actuellement attaché à ce salon.\nUtilisez </chat load:1105603534310879345> ou </chat temp:1105603534310879345> pour en attacher un.", delete_after=10)
+            return await message.reply("**Aucun chatbot** · Il n'y a pas de chatbot actuellement attaché à ce salon.\nUtilisez </chat load:1105603534310879345> ou </chat temp:1105603534310879345> pour en attacher un.", delete_after=10, mention_author=False)
         
         session = self.get_session(message.channel) # type: ignore
         if session.check_blacklist(message.author.id) or session.check_blacklist(message.channel.id):
