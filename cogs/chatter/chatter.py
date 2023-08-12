@@ -1,3 +1,4 @@
+from calendar import c
 from io import BytesIO
 import logging
 import random
@@ -662,6 +663,12 @@ class Chatter(commands.Cog):
         self.data = dataio.get_cog_data(self)
         openai.api_key = self.bot.config['OPENAI_APIKEY'] #type: ignore
         
+        self.use_msg_as_prompt = app_commands.ContextMenu(
+            name="Demander à l'IA",
+            callback=self.ctx_use_as_prompt,
+        )
+        self.bot.tree.add_command(self.use_msg_as_prompt)
+        
         self.sessions = {}
         
     @commands.Cog.listener()
@@ -913,6 +920,22 @@ class Chatter(commands.Cog):
         
         chatbot = self.get_session(channel).chatbot
         await interaction.response.send_message(embed=chatbot.embed)
+        
+    async def ctx_use_as_prompt(self, interaction: discord.Interaction, message: discord.Message):
+        """Menu contextuel permettant d'utiliser le message visé comme prompt pour le chatbot du salon"""
+        channel = interaction.channel
+        if not isinstance(channel, (discord.TextChannel, discord.Thread)):
+            return await interaction.response.send_message("**Impossible** · Cette fonctionnalité n'est disponible que sur les salons textuels et les threads.")
+
+        session = self.get_session(channel)
+        if session is None:
+            return await interaction.response.send_message("**Aucun chatbot n'est chargé** · Il n'y a pas de chatbot actuellement attaché à ce salon.")
+        
+        ctx_user = interaction.user
+        if session.check_blacklist(ctx_user.id) or session.check_blacklist(message.channel.id):
+            return await interaction.response.send_message("**Impossible** · Vous ne pouvez pas utiliser ce message comme prompt car vous avez été blacklisté par le chatbot ou ce salon n'est pas autorisé à utiliser ce chatbot.", ephemeral=True)
+        
+        await session.handle_message(message)
         
     # TODO: Ajouter une fois que les crédits seront implémentés et obligatoires
     
