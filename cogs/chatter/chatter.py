@@ -936,6 +936,7 @@ class Chatter(commands.Cog):
         if session.check_blacklist(ctx_user.id) or session.check_blacklist(message.channel.id):
             return await interaction.response.send_message("**Impossible** · Vous ne pouvez pas utiliser ce message comme prompt car vous avez été blacklisté par le chatbot ou ce salon n'est pas autorisé à utiliser ce chatbot.", ephemeral=True)
         
+        await interaction.response.defer()
         await session.handle_message(message)
         
     # TODO: Ajouter une fois que les crédits seront implémentés et obligatoires
