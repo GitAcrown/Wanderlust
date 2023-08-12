@@ -639,12 +639,12 @@ class AIChatSession:
             
             # Si le bot a fini de parler on envoie juste la réponse
             if is_finished:
-                await message.reply(text)
+                await message.reply(text, mention_author=False)
                 return True
             
             # Sinon on envoie la réponse avec un bouton pour continuer
             view = ContinueButtonView(author=message.author)
-            resp = await message.reply(text, view=view)
+            resp = await message.reply(text, view=view, mention_author=False)
             await view.wait()
             
             if view.value is True:
@@ -935,7 +935,7 @@ class Chatter(commands.Cog):
         if session.check_blacklist(ctx_user.id) or session.check_blacklist(message.channel.id):
             return await interaction.response.send_message("**Impossible** · Vous ne pouvez pas utiliser ce message comme prompt car vous avez été blacklisté par le chatbot ou ce salon n'est pas autorisé à utiliser ce chatbot.", ephemeral=True)
         
-        await interaction.response.send_message(f"**Veuillez patienter** · Le message de {message.author.display_name} a été envoyé au chatbot attaché au salon.", ephemeral=True, delete_after=10)
+        await interaction.response.send_message(f"**Demande à l'IA** · Le message de {message.author.display_name} a été envoyé à {session.chatbot}", ephemeral=True, delete_after=5)
         await session.handle_message(message, override_mention=True)
         
     # TODO: Ajouter une fois que les crédits seront implémentés et obligatoires
