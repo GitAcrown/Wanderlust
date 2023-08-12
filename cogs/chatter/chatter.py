@@ -925,10 +925,10 @@ class Chatter(commands.Cog):
         """Menu contextuel permettant d'utiliser le message visé comme prompt pour le chatbot du salon"""
         channel = interaction.channel
         if not isinstance(channel, (discord.TextChannel, discord.Thread)):
-            return await interaction.response.send_message("**Impossible** · Cette fonctionnalité n'est disponible que sur les salons textuels et les threads.")
+            return await interaction.response.send_message("**Impossible** · Cette fonctionnalité n'est disponible que sur les salons textuels et les threads.", ephemeral=True)
 
         if channel.id not in self.sessions:
-            return await interaction.response.send_message("**Aucun chatbot n'est chargé** · Il n'y a pas de chatbot actuellement attaché à ce salon.")
+            return await interaction.response.send_message("**Aucun chatbot n'est chargé** · Il n'y a pas de chatbot actuellement attaché à ce salon.", ephemeral=True)
         
         session = self.get_session(channel)
         
