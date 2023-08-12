@@ -609,16 +609,16 @@ class AIChatSession:
             async with channel.typing():
                 comp = await self._get_completion(content, message.author.display_name)
         else:
-            # Si le message est une réponse à un message du chatbot
-            if message.reference and message.reference.resolved:
-                reply = message.reference.resolved
-                if isinstance(reply, discord.DeletedReferencedMessage):
-                    return False
-                if reply.author.id != botuser.id:
-                    return False
+            # # Si le message est une réponse à un message du chatbot
+            # if message.reference and message.reference.resolved:
+            #     reply = message.reference.resolved
+            #     if isinstance(reply, discord.DeletedReferencedMessage):
+            #         return False
+            #     if reply.author.id != botuser.id:
+            #         return False
                 
-                async with channel.typing():
-                    comp = await self._get_completion(content, message.author.display_name)
+            #     async with channel.typing():
+            #         comp = await self._get_completion(content, message.author.display_name)
         
             # Si le bot est mentionné
             if botuser.mentioned_in(message):
