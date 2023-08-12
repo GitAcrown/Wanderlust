@@ -1353,6 +1353,8 @@ class Chatter(commands.Cog):
         if message.channel.id not in self.sessions:
             if not self.bot.user:
                 return
+            if message.channel.type not in (discord.ChannelType.text, discord.ChannelType.private_thread, discord.ChannelType.public_thread):
+                return
             if self.bot.user.mentioned_in(message):
                 return await message.reply("**Aucun chatbot** · Il n'y a pas de chatbot actuellement attaché à ce salon.\nUtilisez </chat load:1105603534310879345> ou </chat temp:1105603534310879345> pour en attacher un.", delete_after=10)
         
