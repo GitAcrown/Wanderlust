@@ -1354,14 +1354,17 @@ class Chatter(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         """Répond aux messages des utilisateurs avec un chatbot IA si on le mentionne, lui répond, ou si on est sur un thread avec le mode de réponse automatique activé."""
-        if not self.bot.user:
-            return
         if message.channel.id not in self.sessions:
+            if not self.bot.user:
+                return
             if message.channel.type not in (discord.ChannelType.text, discord.ChannelType.private_thread, discord.ChannelType.public_thread):
                 return
             if not self.bot.user.mentioned_in(message):
                 return
             return await message.reply("**Aucun chatbot** · Il n'y a pas de chatbot actuellement attaché à ce salon.\nUtilisez </chat load:1105603534310879345> ou </chat temp:1105603534310879345> pour en attacher un.", delete_after=10, mention_author=False)
+        
+        if message.author.bot:
+            return
         
         session = self.get_session(message.channel) # type: ignore
         if session.check_blacklist(message.author.id) or session.check_blacklist(message.channel.id):
