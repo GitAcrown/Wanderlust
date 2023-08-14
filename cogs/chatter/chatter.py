@@ -69,13 +69,13 @@ class AddAskContextModal(discord.ui.Modal):
         self.chatbot = chatbot 
         self.initial_message = initial_message
         
-        self.context = discord.ui.TextInput(label='Introduire la citation', placeholder="Entrez une introduction à cette citation (facultatif)", max_length=200, required=False)
+        self.context = discord.ui.TextInput(label='Introduire la citation', placeholder="Entrez une demande concernant cette citation (facultatif)", max_length=200, required=False)
         self.add_item(self.context)
         
     async def on_submit(self, interaction: discord.Interaction) -> None:
         self.value = self.context.value if self.context.value else None
         if self.value:
-            await interaction.response.send_message(f"**Demande à l'IA** · Le message de *{self.initial_message.author.display_name}* a été envoyé au chatbot **{self.chatbot}** avec comme contexte `{self.value}`")
+            await interaction.response.send_message(f"**Demande à l'IA** · Le message de *{self.initial_message.author.display_name}* a été envoyé au chatbot **{self.chatbot}** avec comme demande `{self.value}`")
         else:
             await interaction.response.send_message(f"**Demande à l'IA** · Le message de *{self.initial_message.author.display_name}* a été envoyé au chatbot **{self.chatbot}**")
     
