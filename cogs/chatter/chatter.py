@@ -1,20 +1,16 @@
 import asyncio
-from calendar import c
-from io import BytesIO
 import logging
 import random
 import time
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 import discord
 import openai
-import requests
 import tiktoken
+import unidecode
 from discord import app_commands
 from discord.ext import commands
-from PIL import Image, ImageDraw
-import unidecode
 
 from common import dataio
 from common.utils import fuzzy, pretty
@@ -66,7 +62,23 @@ class ContinueButtonView(discord.ui.View):
         
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         return interaction.user.id == self.author.id if self.author else True
+    
+class AddAskContextModal(discord.ui.Modal):
+    def __init__(self, chatbot: Union['CustomChatbot', 'TempChatbot'], initial_message: discord.Message, *, timeout: float | None = None) -> None:
+        super().__init__(title=f"Demander à {chatbot}", timeout=timeout)
+        self.chatbot = chatbot 
+        self.initial_message = initial_message
         
+        self.context = discord.ui.TextInput(label='Introduire la citation', placeholder="Entrez une introduction à cette citation (facultatif)", max_length=200, required=False)
+        self.add_item(self.context)
+        
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        self.value = self.context.value if self.context.value else None
+        if self.value:
+            await interaction.response.send_message(f"**Demande à l'IA** · Le message de *{self.initial_message.author.display_name}* a été envoyé au chatbot **{self.chatbot}** avec comme contexte `{self.value}`")
+        else:
+            await interaction.response.send_message(f"**Demande à l'IA** · Le message de *{self.initial_message.author.display_name}* a été envoyé au chatbot **{self.chatbot}**")
+    
 class ChatbotList(discord.ui.View):
     """Affiche les détails sur les chatbots d'un serveur"""
     def __init__(self, chatbots: List['CustomChatbot'], *, timeout: float | None = 60, starting_page: int = 0, user: discord.User | discord.Member | None = None):
@@ -194,30 +206,6 @@ class CustomChatbot:
             self.created_at,
             self.id
         ))
-        
-    def _get_avatar_color(self) -> discord.Color:
-        """Récupère la couleur dominante de l'avatar."""
-        
-        def get_dominant_color(pil_img: Image.Image):
-            img = pil_img.copy()
-            img = img.convert("RGBA")
-            img = img.resize((1, 1), resample=0)
-            dominant_color = img.getpixel((0, 0))
-            return dominant_color
-        
-        url = self.avatar_url
-        with requests.get(url) as r:
-            if r.status_code != 200:
-                raise ValueError(f'Impossible de récupérer l\'avatar du chatbot {self.id}.')
-            elif len(r.content) > 8388608:
-                raise ValueError(f'L\'avatar du chatbot {self.id} est trop lourd.')
-            img = BytesIO(r.content)
-        
-        image = Image.open(img)
-        color = get_dominant_color(image)
-        if not color:
-            return discord.Color(EMBED_DEFAULT_COLOR)
-        return discord.Color.from_rgb(*color[:3])
         
     def _get_embed(self):
         """Récupère un embed représentant le chatbot."""
@@ -587,45 +575,32 @@ class AIChatSession:
             'stop': is_finished
         }
 
-    async def handle_message(self, message: discord.Message, *, send_continue: bool = False, override_mention: bool = False):
+    async def handle_message(self, message: discord.Message, *, send_continue: bool = False, override_mention: bool = False, custom_content: str | None = None) -> bool:
         """Gère un message envoyé sur le salon."""
         botuser = self._cog.bot.user
         channel = message.channel
         if not botuser:
             return False
         
-        content = message.content
+        content = message.content if custom_content is None else custom_content
+            
         if not content:
             return False
 
-        # Si le message est une commande, on ne le traite pas
-        if content.startswith('w!'):
+        if content.startswith('w!'): # Ignore les commandes
             return False
         
         comp = None
         
-        # Si le bot n'a pas fini de parler
-        if send_continue:
+        if send_continue: # Si le chatbot n'a pas fini de parler
             content = 'Suite'
             async with channel.typing():
                 comp = await self._get_completion(content, message.author.display_name)
         elif botuser.mentioned_in(message) or override_mention:
             async with channel.typing():
                 comp = await self._get_completion(content, message.author.display_name)
-            # # Si le message est une réponse à un message du chatbot
-            # if message.reference and message.reference.resolved:
-            #     reply = message.reference.resolved
-            #     if isinstance(reply, discord.DeletedReferencedMessage):
-            #         return False
-            #     if reply.author.id != botuser.id:
-            #         return False
-                
-            #     async with channel.typing():
-            #         comp = await self._get_completion(content, message.author.display_name)
-        
-            # Si le bot est mentionné
             
-        if comp:
+        if comp: # Si le chatbot a répondu
             text = comp['content']
             tokens_used = comp['tokens_used']
             is_finished = comp['stop']
@@ -655,6 +630,7 @@ class AIChatSession:
             else:
                 await resp.edit(view=None)
             return True
+        return False
 
 class Chatter(commands.Cog):
     """Parlez avec le bot et customisez son comportement !"""
@@ -938,7 +914,15 @@ class Chatter(commands.Cog):
         if session.check_blacklist(ctx_user.id) or session.check_blacklist(message.channel.id):
             return await interaction.response.send_message("**Impossible** · Vous ne pouvez pas utiliser ce message comme prompt car vous avez été blacklisté par le chatbot ou ce salon n'est pas autorisé à utiliser ce chatbot.", ephemeral=True)
         
-        await interaction.response.send_message(f"**Demande à l'IA** · Le message de *{message.author.display_name}* a été envoyé au chatbot **{session.chatbot}**", delete_after=5)
+        modal = AddAskContextModal(session.chatbot, message, timeout=120)
+        await interaction.response.send_modal(modal)
+        
+        cancel_modal = await modal.wait()
+        if not cancel_modal and modal.value:
+            new_content = modal.value + '\n' + f'{message.author.display_name} a dit : {message.content}'
+            return await session.handle_message(message, override_mention=True, custom_content=new_content)
+        
+        # await interaction.response.send_message(f"**Demande à l'IA** · Le message de *{message.author.display_name}* a été envoyé au chatbot **{session.chatbot}**", delete_after=5)
         await session.handle_message(message, override_mention=True)
         
     # TODO: Ajouter une fois que les crédits seront implémentés et obligatoires
