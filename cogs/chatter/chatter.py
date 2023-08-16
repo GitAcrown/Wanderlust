@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Union
 
 import discord
+from httpx import delete
 import openai
 import tiktoken
 import unidecode
@@ -75,9 +76,9 @@ class AddAskContextModal(discord.ui.Modal):
     async def on_submit(self, interaction: discord.Interaction) -> None:
         self.value = self.context.value if self.context.value else None
         if self.value:
-            await interaction.response.send_message(f"**Demande à l'IA** · Le message de *{self.initial_message.author.display_name}* a été envoyé au chatbot **{self.chatbot}** avec comme demande `{self.value}`")
+            await interaction.response.send_message(f"**Demande à l'IA** · Le message de *{self.initial_message.author.display_name}* a été envoyé au chatbot **{self.chatbot}** avec comme demande `{self.value}`", delete_after=120)
         else:
-            await interaction.response.send_message(f"**Demande à l'IA** · Le message de *{self.initial_message.author.display_name}* a été envoyé au chatbot **{self.chatbot}**")
+            await interaction.response.send_message(f"**Demande à l'IA** · Le message de *{self.initial_message.author.display_name}* a été envoyé au chatbot **{self.chatbot}**", delete_after=30)
     
 class ChatbotList(discord.ui.View):
     """Affiche les détails sur les chatbots d'un serveur"""
