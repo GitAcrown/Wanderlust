@@ -919,7 +919,7 @@ class Chatter(commands.Cog):
         
         cancel_modal = await modal.wait()
         if not cancel_modal and modal.value:
-            new_content = modal.value + '\n' + f'{message.author.display_name} a dit : {message.content}'
+            new_content = modal.value + '\n' + message.content
             return await session.handle_message(message, override_mention=True, custom_content=new_content)
         
         # await interaction.response.send_message(f"**Demande à l'IA** · Le message de *{message.author.display_name}* a été envoyé au chatbot **{session.chatbot}**", delete_after=5)
