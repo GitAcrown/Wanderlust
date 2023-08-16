@@ -615,12 +615,12 @@ class AIChatSession:
             
             # Si le bot a fini de parler on envoie juste la réponse
             if is_finished:
-                await message.reply(text, mention_author=False)
+                await message.reply(text, mention_author=False, suppress_embeds=True)
                 return True
             
             # Sinon on envoie la réponse avec un bouton pour continuer
             view = ContinueButtonView(author=message.author)
-            resp = await message.reply(text, view=view, mention_author=False)
+            resp = await message.reply(text, view=view, mention_author=False, suppress_embeds=True)
             await view.wait()
             
             if view.value is True:
