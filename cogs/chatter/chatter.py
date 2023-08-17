@@ -464,7 +464,7 @@ class TempChatbot:
         return f'<TempChatbot system_prompt={self.system_prompt}>'
     
     def __str__(self) -> str:
-        return f'W.{self.name.title()} [DEBUG]' if self._debug else f'W.{self.name.title()}'
+        return f'T.{self.name.title()} [DEBUG]' if self._debug else f'T.{self.name.title()}'
     
     def _get_avatar_color(self) -> discord.Color:
         return discord.Color(EMBED_DEFAULT_COLOR)
@@ -504,6 +504,18 @@ class TempChatbot:
     def embed(self) -> discord.Embed:
         """Récupère un embed représentant le chatbot temporaire."""
         return self._get_embed()
+    
+class PassiveChatbot(TempChatbot):
+    """Représente un chatbot temporaire passif qui tourne constamment en fond sur un salon"""
+    def __init__(self, cog: 'Chatter', system_prompt: str, temperature: float, context_size: int, *, author_id: int | None = None, debug: bool = False):
+        super().__init__(cog, system_prompt, temperature, context_size, author_id=author_id, debug=debug)
+        self.description = f'Chatbot temporaire en mode passif\n⚠ Ce chatbot lit activement tous les messages postés sur ce salon et les utilise comme contexte de réponse.'
+
+    def __repr__(self) -> str:
+        return f'<PassiveChatbot system_prompt={self.system_prompt}>'
+    
+    def __str__(self) -> str:
+        return f'TP.{self.name.title()} [DEBUG]' if self._debug else f'TP.{self.name.title()}'
                 
 class AIChatSession:
     """Représente une session de chat avec un chatbot IA."""
@@ -558,7 +570,7 @@ class AIChatSession:
         tokens = response['usage']['total_tokens']
         
         if len(text) > 2000:
-            text = text[:1995] + '...'
+            text = text[:1997] + '...'
             is_finished = False
         
         timestamp = time.time()
@@ -574,7 +586,7 @@ class AIChatSession:
             'content': text,
             'tokens_used': tokens,
             'stop': is_finished
-        }
+        } # type: ignore
 
     async def handle_message(self, message: discord.Message, *, send_continue: bool = False, override_mention: bool = False, custom_content: str | None = None) -> bool:
         """Gère un message envoyé sur le salon."""
@@ -600,6 +612,10 @@ class AIChatSession:
         elif botuser.mentioned_in(message) or override_mention:
             async with channel.typing():
                 comp = await self._get_completion(content, message.author.display_name)
+        elif isinstance(self.chatbot, PassiveChatbot): # Si le chatbot est en mode passif on enregistre tous les messages d'utilisateurs qui ne mentionnent pas le bot
+            username = unidecode.unidecode(message.author.display_name)
+            username = ''.join([c for c in username if c.isalnum()]).rstrip()
+            self.chatbot._context.append({'role': 'user', 'content': content, 'name': username})
             
         if comp: # Si le chatbot a répondu
             text = comp['content']
@@ -616,12 +632,12 @@ class AIChatSession:
             
             # Si le bot a fini de parler on envoie juste la réponse
             if is_finished:
-                await message.reply(text, mention_author=False, suppress_embeds=True)
+                await message.reply(text, mention_author=False, suppress_embeds=True, allowed_mentions=discord.AllowedMentions(users=False, roles=False, everyone=False, replied_user=True))
                 return True
             
             # Sinon on envoie la réponse avec un bouton pour continuer
             view = ContinueButtonView(author=message.author)
-            resp = await message.reply(text, view=view, mention_author=False, suppress_embeds=True)
+            resp = await message.reply(text, view=view, mention_author=False, suppress_embeds=True, allowed_mentions=discord.AllowedMentions(users=False, roles=False, everyone=False, replied_user=True))
             await view.wait()
             
             if view.value is True:
@@ -809,7 +825,7 @@ class Chatter(commands.Cog):
     chat_group = app_commands.Group(name='chat', description="Commandes permettant de discuter avec l'IA", guild_only=True)
     
     @chat_group.command(name='temp')
-    @app_commands.rename(system_prompt='initialisation', temperature='température')
+    @app_commands.rename(system_prompt='initialisation', temperature='température', context_size='taille_contexte')
     async def _chat_temp(self, interaction: discord.Interaction, system_prompt: str, temperature: app_commands.Range[float, 0.1, 2.0] = 0.8, context_size: app_commands.Range[int, 1, MAX_CONTEXT_SIZE] = DEFAULT_CONTEXT_SIZE, debug: bool = False):
         """Créer un chatbot temporaire pour discuter sur le salon courant
         
@@ -830,6 +846,29 @@ class Chatter(commands.Cog):
             
         self.set_session(channel, chatbot)
         await interaction.followup.send(f"Le chatbot temporaire **{chatbot}** a été attaché à ce salon.", embed=chatbot.embed)
+        
+    @chat_group.command(name='passive')
+    @app_commands.rename(system_prompt='initialisation', temperature='température', context_size='taille_contexte')
+    async def _chat_passive(self, interaction: discord.Interaction, system_prompt: str, temperature: app_commands.Range[float, 0.1, 2.0] = 0.8, context_size: app_commands.Range[int, 1, MAX_CONTEXT_SIZE] = DEFAULT_CONTEXT_SIZE, debug: bool = False):
+        """Créer un chatbot temporaire passif qui lit tous les messages du salon courant
+        
+        :param system_prompt: Prompt d'initialisation de l'IA
+        :param temperature: Température de l'IA (entre 0.1 et 2.0)
+        :param context_size: Taille du contexte de l'IA en tokens (par défaut 1024)
+        :param debug: Si True, affiche des informations supplémentaires à la fin des messages
+        """
+        channel = interaction.channel
+        if not isinstance(channel, (discord.TextChannel, discord.Thread)):
+            raise commands.BadArgument('Cette commande ne peut être utilisée que sur un salon textuel ou un thread.')
+        
+        await interaction.response.defer()
+        chatbot = PassiveChatbot(self, system_prompt, temperature, context_size, author_id=interaction.user.id, debug=debug)
+        if channel.id in self.sessions:
+            if not await self.ask_replace_session(interaction, channel, chatbot):
+                return await interaction.followup.send("Vous avez annulé la création du chatbot temporaire passif.", ephemeral=True)
+        
+        self.set_session(channel, chatbot)
+        await interaction.followup.send(f"Le chatbot temporaire passif **{chatbot}** a été attaché à ce salon.", embed=chatbot.embed)
         
     @chat_group.command(name='wipe')
     async def _chat_wipe(self, interaction: discord.Interaction):
@@ -1083,11 +1122,11 @@ class Chatter(commands.Cog):
         await menu.start(interaction)
         
     # Dev ---------------------------------------------------------------------------------------------------
-    devchat_group = app_commands.Group(name='devchat', description="Commandes avancées de gestion des Chatbots", guild_only=True, default_permissions=discord.Permissions(manage_messages=True))
+    modchat_group = app_commands.Group(name='modchat', description="Commandes avancées de gestion des Chatbots", guild_only=True, default_permissions=discord.Permissions(manage_messages=True))
         
-    @devchat_group.command(name='rawedit')
+    @modchat_group.command(name='edit')
     @app_commands.rename(chatbot_id='chatbot', key='clé', value='valeur')
-    async def _devchat_edit(self, interaction: discord.Interaction, chatbot_id: int, key: str, value: str):
+    async def _modchat_edit(self, interaction: discord.Interaction, chatbot_id: int, key: str, value: str):
         """Modifie un paramètre d'un chatbot personnalisé sans avoir à le refaire entièrement
 
         :param chatbot_id: Identifiant unique du chatbot
@@ -1121,8 +1160,8 @@ class Chatter(commands.Cog):
         chatbot.save()
         await interaction.response.send_message(f"**Modification effectuée** · Le paramètre `{key}` a été modifié pour `{value}`.", embed=chatbot.embed, ephemeral=True)
         
-    @devchat_group.command(name='check')
-    async def _devchat_check(self, interaction: discord.Interaction):
+    @modchat_group.command(name='resolve')
+    async def _modchat_resolve(self, interaction: discord.Interaction):
         """Règle tous les conflits de noms entre les chatbots du serveur"""
         guild = interaction.guild
         if not isinstance(guild, discord.Guild):
@@ -1165,8 +1204,8 @@ class Chatter(commands.Cog):
         
         await interaction.followup.send(f"**Succès** · {len(conflicts) - 1} chatbots ont été supprimés.", ephemeral=True)
         
-    @devchat_group.command(name='cancel')
-    async def _devchat_cancel(self, interaction: discord.Interaction):
+    @modchat_group.command(name='cancellast')
+    async def _modchat_cancel_last(self, interaction: discord.Interaction):
         """Permet de supprimer du contexte le dernier message envoyé ou reçu par le chatbot sur le salon courant"""
         guild = interaction.guild
         if not isinstance(guild, discord.Guild):
@@ -1321,7 +1360,7 @@ class Chatter(commands.Cog):
         
     @_chat_load.autocomplete('chatbot_id')
     @_chatbot_delete.autocomplete('chatbot_id')
-    @_devchat_edit.autocomplete('chatbot_id')
+    @_modchat_edit.autocomplete('chatbot_id')
     @_blacklist_add.autocomplete('chatbot_id')
     @_blacklist_remove.autocomplete('chatbot_id')
     @_blacklist_list.autocomplete('chatbot_id')
@@ -1332,7 +1371,7 @@ class Chatter(commands.Cog):
         r = fuzzy.finder(current, chatbots, key=lambda c: c.name)
         return [app_commands.Choice(name=c.name, value=c.id) for c in r]
     
-    @_devchat_edit.autocomplete('key')
+    @_modchat_edit.autocomplete('key')
     async def chatbot_key_autocomplete(self, interaction: discord.Interaction, current: str):
         return [app_commands.Choice(name=k, value=k) for k in ['name', 'description', 'avatar_url', 'system_prompt', 'temperature', 'context_size']]
     
