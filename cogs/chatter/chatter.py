@@ -509,7 +509,7 @@ class PassiveChatbot(TempChatbot):
     """Représente un chatbot temporaire passif qui tourne constamment en fond sur un salon"""
     def __init__(self, cog: 'Chatter', system_prompt: str, temperature: float, context_size: int, *, author_id: int | None = None, debug: bool = False):
         super().__init__(cog, system_prompt, temperature, context_size, author_id=author_id, debug=debug)
-        self.description = f'Chatbot temporaire en mode passif\n⚠ Ce chatbot lit activement tous les messages postés sur ce salon et les utilise comme contexte de réponse.'
+        self.description = f'Chatbot temporaire en mode passif\n**⚠ Ce chatbot lit activement tous les messages postés sur ce salon et les utilise comme contexte de réponse.**'
 
     def __repr__(self) -> str:
         return f'<PassiveChatbot system_prompt={self.system_prompt}>'
