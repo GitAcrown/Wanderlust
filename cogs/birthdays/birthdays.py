@@ -1,3 +1,4 @@
+from io import BytesIO
 import logging
 from typing import Dict, List, Union, Optional
 
@@ -331,8 +332,11 @@ class Birthdays(commands.GroupCog, group_name='bday', description="Inventaire de
         
         bdays = [f"{u.display_name} ({u.id}) · {dt.strftime('%d/%m')}" for u, dt in bdays.items()]
         bdays = "\n".join(bdays)
-        file = discord.File(filename="birthdays.txt", fp=bdays)
-        await interaction.response.send_message(file=file)
+        with BytesIO() as buffer:
+            buffer.write(bdays.encode('utf-8'))
+            buffer.seek(0)
+            file = discord.File(filename="birthdays.txt", fp=buffer)
+            await interaction.response.send_message(file=file)
     
 async def setup(bot):
     await bot.add_cog(Birthdays(bot))
