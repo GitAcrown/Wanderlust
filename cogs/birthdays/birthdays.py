@@ -315,6 +315,24 @@ class Birthdays(commands.GroupCog, group_name='bday', description="Inventaire de
         if not channel:
             return await interaction.response.send_message("**Salon supprimé**\nLe salon dans lequel envoyer les notifications d'anniversaire a été supprimé.", ephemeral=True)
         await interaction.response.send_message(f"**Salon défini**\nLes notifications d'anniversaire seront envoyées dans le salon {channel.mention}.", ephemeral=True)
+        
+    @app_commands.command(name="extract")
+    @app_commands.guild_only()
+    @commands.has_permissions(administrator=True)
+    async def _extract_bdays(self, interaction: discord.Interaction):
+        """Sort les dates d'anniversaire de tous les membres (pseudos et IDs) du serveur dans un fichier texte"""
+        guild = interaction.guild
+        if not guild:
+            return await interaction.response.send_message("**Erreur**\nCette commande ne peut être utilisée que sur un serveur.", ephemeral=True)
+        
+        bdays = self.get_guild_birthdays(guild)
+        if not bdays:
+            return await interaction.response.send_message("**Aucune date d'anniversaire définie**\nAucun membre du serveur n'a défini de date d'anniversaire.", ephemeral=True)
+        
+        bdays = [f"{u.display_name} ({u.id}) · {dt.strftime('%d/%m')}" for u, dt in bdays.items()]
+        bdays = "\n".join(bdays)
+        file = discord.File(filename="birthdays.txt", fp=bdays)
+        await interaction.response.send_message(file=file)
     
 async def setup(bot):
     await bot.add_cog(Birthdays(bot))
